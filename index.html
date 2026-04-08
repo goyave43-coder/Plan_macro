@@ -249,21 +249,25 @@
 
         // NOUVELLE FONCTION : Supprimer un aliment
         function deleteLog(id, isSimulation) {
+            console.log("Tentative de suppression de l'ID :", id);
             // Suppression visuelle immédiate
             journalLogs = journalLogs.filter(log => log.id !== id);
             renderJournal();
 
-            // Envoi au Google Sheet seulement si ce n'est pas une simulation
-            if (!isSimulation && !id.startsWith('sim_') && id !== undefined && id !== null && id !== "") {
+            if (!isSimulation && id && !id.startsWith('sim_')) {
                 document.getElementById('loading').style.display = 'block';
                 fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ action: "deleteLog", id: id })
-                }).then(() => {
+                })
+                .then(response => response.text())
+                .then(result => {
+                    console.log("Réponse du Sheet :", result);
                     document.getElementById('loading').style.display = 'none';
-                }).catch(err => {
-                    console.error("Erreur suppression", err);
+                })
+                .catch(err => {
+                    console.error("Erreur réseau :", err);
                     document.getElementById('loading').style.display = 'none';
                 });
             }
