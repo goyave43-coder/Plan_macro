@@ -21,30 +21,22 @@
 <body>
 
     <a href="index.html" class="btn-back">⬅️ Retour au Tracker</a>
-    
     <h1>📊 Mon Bilan sur 7 jours</h1>
-    
     <div id="loading">⏳ Récupération de tes données depuis Google Sheets...</div>
 
     <div class="grid-container" id="dashboard" style="display: none;">
-        <div class="chart-card">
-            <canvas id="calsChart"></canvas>
-        </div>
-        <div class="chart-card">
-            <canvas id="protChart"></canvas>
-        </div>
-        <div class="chart-card">
-            <canvas id="carbChart"></canvas>
-        </div>
-        <div class="chart-card">
-            <canvas id="fatChart"></canvas>
-        </div>
+        <div class="chart-card"><canvas id="calsChart"></canvas></div>
+        <div class="chart-card"><canvas id="protChart"></canvas></div>
+        <div class="chart-card"><canvas id="carbChart"></canvas></div>
+        <div class="chart-card"><canvas id="fatChart"></canvas></div>
     </div>
 
     <script>
-        // Ton URL Google Apps Script
         const API_URL = "https://script.google.com/macros/s/AKfycbz6U7pCds5-Yt1X3oQb9w2rQBs1KpJxNXVHF0aZZYeT8nFIywTAxdbKnsgXW7fjxkJi8A/exec";
         const TARGETS = { cals: 2160, prot: 170, carb: 210, fat: 70 };
+
+        // L'arme secrète contre les virgules du tableur
+        const parseFr = (val) => parseFloat(String(val).replace(',', '.')) || 0;
 
         async function init() {
             try {
@@ -54,52 +46,44 @@
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('dashboard').style.display = 'grid';
             } catch (error) {
-                console.error("Erreur de connexion:", error);
                 document.getElementById('loading').innerText = "❌ Erreur de chargement. Vérifie ta connexion.";
             }
         }
 
         function processData(logs) {
-            // Grouper les macros par date
             const dailyTotals = {};
 
             logs.forEach(log => {
                 if (!log.date) return;
                 
-                // Extraire la date sous format YYYY-MM-DD
                 let dateStr = "";
-                if (log.date.toString().length >= 10) {
+                const d = new Date(log.date);
+                if (!isNaN(d.getTime())) {
+                     dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                } else if (log.date.toString().length >= 10) {
                     dateStr = log.date.toString().substring(0, 10);
                 } else {
-                    const d = new Date(log.date);
-                    if (!isNaN(d.getTime())) {
-                         dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-                    } else {
-                        return; // Ignorer si la date est invalide
-                    }
+                    return; 
                 }
 
                 if (!dailyTotals[dateStr]) {
                     dailyTotals[dateStr] = { cals: 0, prot: 0, carb: 0, fat: 0 };
                 }
                 
-                // On additionne (et on ignore les simulations au cas où elles se seraient glissées dans les logs en mémoire)
                 if (!log.isSimulation) {
-                    dailyTotals[dateStr].cals += parseFloat(log.cals) || 0;
-                    dailyTotals[dateStr].prot += parseFloat(log.prot) || 0;
-                    dailyTotals[dateStr].carb += parseFloat(log.carb) || 0;
-                    dailyTotals[dateStr].fat += parseFloat(log.fat) || 0;
+                    dailyTotals[dateStr].cals += parseFr(log.cals);
+                    dailyTotals[dateStr].prot += parseFr(log.prot);
+                    dailyTotals[dateStr].carb += parseFr(log.carb);
+                    dailyTotals[dateStr].fat += parseFr(log.fat);
                 }
             });
 
-            // Trier les dates chronologiquement et prendre les 7 dernières
             const sortedDates = Object.keys(dailyTotals).sort();
             const last7Dates = sortedDates.slice(-7);
 
-            // Préparer les tableaux de données pour Chart.js
             const labels = last7Dates.map(d => {
                 const parts = d.split('-');
-                return `${parts[2]}/${parts[1]}`; // Format JJ/MM
+                return `${parts[2]}/${parts[1]}`; 
             });
             
             const dataCals = last7Dates.map(d => Math.round(dailyTotals[d].cals));
@@ -107,23 +91,20 @@
             const dataCarb = last7Dates.map(d => Math.round(dailyTotals[d].carb));
             const dataFat = last7Dates.map(d => Math.round(dailyTotals[d].fat));
 
-            // Création des 4 graphiques
-            createChart('calsChart', 'Calories (kcal)', dataCals, TARGETS.cals, '#e74c3c');
-            createChart('protChart', 'Protéines (g)', dataProt, TARGETS.prot, '#3498db');
-            createChart('carbChart', 'Glucides (g)', dataCarb, TARGETS.carb, '#f1c40f');
-            createChart('fatChart', 'Lipides (g)', dataFat, TARGETS.fat, '#e67e22');
+            createChart('calsChart', 'Calories (kcal)', dataCals, TARGETS.cals, '#e74c3c', labels);
+            createChart('protChart', 'Protéines (g)', dataProt, TARGETS.prot, '#3498db', labels);
+            createChart('carbChart', 'Glucides (g)', dataCarb, TARGETS.carb, '#f1c40f', labels);
+            createChart('fatChart', 'Lipides (g)', dataFat, TARGETS.fat, '#e67e22', labels);
         }
 
-        function createChart(canvasId, labelTitle, dataArray, targetValue, colorHex) {
+        function createChart(canvasId, labelTitle, dataArray, targetValue, colorHex, labelsArray) {
             const ctx = document.getElementById(canvasId).getContext('2d');
-            
-            // Créer un tableau pour la ligne d'objectif (même valeur pour chaque jour)
             const targetArray = Array(dataArray.length).fill(targetValue);
 
             new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: dataArray.length > 0 ? arguments[2].labels : ['Aucune donnée'], // Récupère les labels du parent
+                    labels: labelsArray.length > 0 ? labelsArray : ['Aucune donnée'],
                     datasets: [
                         {
                             type: 'line',
@@ -147,19 +128,11 @@
                 options: {
                     responsive: true,
                     plugins: {
-                        title: {
-                            display: true,
-                            text: labelTitle,
-                            font: { size: 16 }
-                        },
-                        legend: { display: false } // On cache la légende pour gagner de la place
+                        title: { display: true, text: labelTitle, font: { size: 16 } },
+                        legend: { display: false }
                     },
                     scales: {
-                        y: {
-                            beginAtZero: true,
-                            // On ajoute 10% d'espace au-dessus de l'objectif pour que le graphique respire
-                            suggestedMax: targetValue * 1.1 
-                        }
+                        y: { beginAtZero: true, suggestedMax: targetValue * 1.1 }
                     }
                 }
             });
