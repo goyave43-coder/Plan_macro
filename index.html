@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Tracker Nutritionnel</title>
+    <title>Mon Tracker Nutritionnel Cloud</title>
     <style>
         * { box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; max-width: 800px; margin: 0 auto; padding: 15px; }
         h1, h2 { color: #2c3e50; font-size: 1.3em; }
-        .header-date { background: #3498db; color: white; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; font-size: 1.2em; font-weight: bold; }
+        .header-date { background: #3498db; color: white; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 10px; font-size: 1.2em; font-weight: bold; }
+        #loading { background: #f39c12; color: white; text-align: center; padding: 8px; border-radius: 5px; margin-bottom: 15px; font-weight: bold; display: none; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
         
         /* Formulaire */
@@ -46,10 +47,12 @@
     <div class="header-date">
         Aujourd'hui, on est le <span id="display-date"></span>
     </div>
+    
+    <div id="loading">⏳ Synchronisation avec Google Sheets...</div>
 
     <div class="card">
         <h2>📅 1. Sélectionner une date</h2>
-        <input type="date" id="date-picker" onchange="loadData()">
+        <input type="date" id="date-picker" onchange="renderJournal()">
     </div>
 
     <div class="card">
@@ -94,7 +97,7 @@
 
     <div class="card">
         <h2>⚙️ 4. Créer un nouvel aliment</h2>
-        <p style="font-size: 0.9em; color: #7f8c8d;">Renseigne les valeurs pour 100g. Il s'ajoutera à ta liste déroulante.</p>
+        <p style="font-size: 0.9em; color: #7f8c8d;">S'ajoute directement à ta base Google Sheets.</p>
         <div class="form-group">
             <input type="text" id="new-food-name" placeholder="Nom de l'aliment" required>
         </div>
@@ -108,6 +111,9 @@
     </div>
 
     <script>
+        // Ton URL Google Apps Script
+        const API_URL = "https://script.google.com/macros/s/AKfycbz6U7pCds5-Yt1X3oQb9w2rQBs1KpJxNXVHF0aZZYeT8nFIywTAxdbKnsgXW7fjxkJi8A/exec";
+        
         const TARGETS = { cals: 2160, prot: 170, carb: 210, fat: 70 };
         
         const defaultDB = [
@@ -127,16 +133,38 @@
             { name: "Œuf entier (cru)", cals: 145, prot: 12, carb: 1, fat: 10 }
         ];
 
+        // État de l'application
+        let customDB = [];
+        let journalLogs = [];
+
+        // Initialisation de la date
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('date-picker').value = today;
         
-        function init() { loadFoodDropdown(); loadData(); }
+        // 1. DÉMARRAGE : Charger les données depuis Google Sheets
+        async function init() { 
+            document.getElementById('loading').style.display = 'block';
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                customDB = data.db || [];
+                journalLogs = data.logs || [];
+            } catch (error) {
+                console.error("Erreur de connexion:", error);
+                alert("Impossible de charger les données depuis Google Sheets. Vérifie ta connexion.");
+            }
+            document.getElementById('loading').style.display = 'none';
+            
+            loadFoodDropdown(); 
+            renderJournal(); 
+        }
 
         function getFullDB() {
-            const customDB = JSON.parse(localStorage.getItem('custom_food_db')) || [];
             let fullDB = [...defaultDB, ...customDB];
-            fullDB.sort((a, b) => a.name.localeCompare(b.name));
-            return fullDB;
+            // Éliminer les éventuels doublons par nom et trier
+            const uniqueDB = Array.from(new Map(fullDB.map(item => [item.name, item])).values());
+            uniqueDB.sort((a, b) => a.name.localeCompare(b.name));
+            return uniqueDB;
         }
 
         function loadFoodDropdown() {
@@ -150,6 +178,7 @@
             });
         }
 
+        // 2. AJOUTER UN ALIMENT DANS GOOGLE SHEETS
         function saveNewFoodToDB() {
             const name = document.getElementById('new-food-name').value;
             const cals = parseFloat(document.getElementById('new-food-kcal').value);
@@ -161,29 +190,30 @@
                 alert("Veuillez remplir tous les champs !"); return;
             }
 
-            const customDB = JSON.parse(localStorage.getItem('custom_food_db')) || [];
-            customDB.push({ name, cals, prot, carb, fat });
-            localStorage.setItem('custom_food_db', JSON.stringify(customDB));
-
+            const newFood = { action: "addAliment", name, cals, prot, carb, fat };
+            
+            // Mise à jour visuelle immédiate
+            customDB.push(newFood);
+            loadFoodDropdown();
             document.getElementById('new-food-name').value = '';
             document.getElementById('new-food-kcal').value = '';
             document.getElementById('new-food-prot').value = '';
             document.getElementById('new-food-carb').value = '';
             document.getElementById('new-food-fat').value = '';
 
-            alert(`${name} ajouté à la base !`);
-            loadFoodDropdown();
+            // Envoi en arrière-plan vers Sheets
+            fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(newFood)
+            }).catch(err => console.error("Erreur sauvegarde aliment", err));
+            
+            alert(`${name} sauvegardé dans le Cloud !`);
         }
 
-        function loadData() {
-            const date = document.getElementById('date-picker').value;
-            document.getElementById('display-date').innerText = new Date(date).toLocaleDateString('fr-FR');
-            const dayData = (JSON.parse(localStorage.getItem('nutrition_tracker')) || {})[date] || [];
-            updateUI(dayData);
-        }
-
+        // 3. AJOUTER UN REPAS AU JOURNAL DANS GOOGLE SHEETS
         function addFoodToJournal() {
-            const date = document.getElementById('date-picker').value;
+            const targetDate = document.getElementById('date-picker').value;
             const meal = document.getElementById('meal-select').value;
             const qty = parseFloat(document.getElementById('consume-qty').value);
             const foodIndex = document.getElementById('food-select').value;
@@ -191,24 +221,45 @@
             if(!qty || isNaN(qty)) { alert("Indiquez une quantité valide."); return; }
 
             const food = getFullDB()[foodIndex];
-            const foodEntry = {
-                meal, name: food.name, qty,
+            const newLog = {
+                action: "addLog",
+                date: targetDate,
+                meal: meal,
+                name: food.name,
+                qty: qty,
                 cals: Math.round((food.cals / 100) * qty),
                 prot: Math.round((food.prot / 100) * qty * 10)/10,
                 carb: Math.round((food.carb / 100) * qty * 10)/10,
                 fat: Math.round((food.fat / 100) * qty * 10)/10
             };
 
-            const savedData = JSON.parse(localStorage.getItem('nutrition_tracker')) || {};
-            if (!savedData[date]) savedData[date] = [];
-            savedData[date].push(foodEntry);
-            localStorage.setItem('nutrition_tracker', JSON.stringify(savedData));
-            
+            // Mise à jour visuelle immédiate
+            journalLogs.push(newLog);
+            renderJournal();
             document.getElementById('consume-qty').value = '';
-            loadData();
+
+            // Envoi en arrière-plan vers Sheets
+            document.getElementById('loading').style.display = 'block';
+            fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(newLog)
+            }).then(() => {
+                document.getElementById('loading').style.display = 'none';
+            }).catch(err => {
+                console.error("Erreur sauvegarde journal", err);
+                document.getElementById('loading').style.display = 'none';
+            });
         }
 
-        function updateUI(dayData) {
+        // 4. AFFICHAGE DES DONNÉES
+        function renderJournal() {
+            const targetDate = document.getElementById('date-picker').value;
+            document.getElementById('display-date').innerText = new Date(targetDate).toLocaleDateString('fr-FR');
+            
+            // Filtrer les logs pour la date sélectionnée (gère les formats de date de Sheets)
+            const dayData = journalLogs.filter(f => f.date && f.date.toString().substring(0, 10) === targetDate);
+            
             let totalCals = 0, totalProt = 0, totalCarb = 0, totalFat = 0;
             const journal = document.getElementById('journal-list');
             journal.innerHTML = '';
@@ -236,6 +287,7 @@
             document.getElementById('fat-text').innerText = `${Math.round(totalFat)} / ${TARGETS.fat}g`;
         }
 
+        // Lancement au chargement de la page
         init();
     </script>
 </body>
