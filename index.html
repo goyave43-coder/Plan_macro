@@ -111,29 +111,10 @@
     </div>
 
     <script>
-        // Ton URL Google Apps Script
         const API_URL = "https://script.google.com/macros/s/AKfycbz6U7pCds5-Yt1X3oQb9w2rQBs1KpJxNXVHF0aZZYeT8nFIywTAxdbKnsgXW7fjxkJi8A/exec";
-        
         const TARGETS = { cals: 2160, prot: 170, carb: 210, fat: 70 };
         
-        const defaultDB = [
-            { name: "Avocat", cals: 160, prot: 2, carb: 9, fat: 15 },
-            { name: "Banane", cals: 89, prot: 1, carb: 23, fat: 0 },
-            { name: "Beurre de cacahuète", cals: 590, prot: 25, carb: 16, fat: 50 },
-            { name: "Blanc de poulet (cuit)", cals: 165, prot: 31, carb: 0, fat: 3 },
-            { name: "Flocons d'avoine", cals: 370, prot: 13, carb: 60, fat: 7 },
-            { name: "Huile d'olive", cals: 900, prot: 0, carb: 0, fat: 100 },
-            { name: "Lait 1/2 écrémé", cals: 47, prot: 3, carb: 5, fat: 1.5 },
-            { name: "Lentilles (cuites)", cals: 115, prot: 9, carb: 20, fat: 0 },
-            { name: "Pomme", cals: 52, prot: 0, carb: 14, fat: 0 },
-            { name: "Pâtes (cuites)", cals: 150, prot: 5, carb: 30, fat: 1 },
-            { name: "Riz basmati (cuit)", cals: 130, prot: 3, carb: 28, fat: 0 },
-            { name: "Saumon (cru)", cals: 200, prot: 20, carb: 0, fat: 13 },
-            { name: "Steak haché 5% (cuit)", cals: 160, prot: 25, carb: 0, fat: 5 },
-            { name: "Œuf entier (cru)", cals: 145, prot: 12, carb: 1, fat: 10 }
-        ];
-
-        // État de l'application
+        // État de l'application (plus d'aliments par défaut)
         let customDB = [];
         let journalLogs = [];
 
@@ -141,17 +122,16 @@
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('date-picker').value = today;
         
-        // 1. DÉMARRAGE : Charger les données depuis Google Sheets
         async function init() { 
             document.getElementById('loading').style.display = 'block';
             try {
-                const response = await fetch(API_URL);
+                // Le "?t=" force Google à ignorer le cache et à télécharger les vraies dernières données
+                const response = await fetch(API_URL + "?t=" + new Date().getTime());
                 const data = await response.json();
                 customDB = data.db || [];
                 journalLogs = data.logs || [];
             } catch (error) {
                 console.error("Erreur de connexion:", error);
-                alert("Impossible de charger les données depuis Google Sheets. Vérifie ta connexion.");
             }
             document.getElementById('loading').style.display = 'none';
             
@@ -160,9 +140,8 @@
         }
 
         function getFullDB() {
-            let fullDB = [...defaultDB, ...customDB];
-            // Éliminer les éventuels doublons par nom et trier
-            const uniqueDB = Array.from(new Map(fullDB.map(item => [item.name, item])).values());
+            // Nettoyage des doublons potentiels et tri alphabétique
+            const uniqueDB = Array.from(new Map(customDB.map(item => [item.name, item])).values());
             uniqueDB.sort((a, b) => a.name.localeCompare(b.name));
             return uniqueDB;
         }
@@ -170,15 +149,21 @@
         function loadFoodDropdown() {
             const select = document.getElementById('food-select');
             select.innerHTML = '';
-            getFullDB().forEach((food, index) => {
+            
+            if(getFullDB().length === 0) {
                 let option = document.createElement('option');
-                option.value = index;
-                option.text = food.name;
+                option.text = "Base vide - Ajoute un aliment ci-dessous";
                 select.appendChild(option);
-            });
+            } else {
+                getFullDB().forEach((food, index) => {
+                    let option = document.createElement('option');
+                    option.value = index;
+                    option.text = food.name;
+                    select.appendChild(option);
+                });
+            }
         }
 
-        // 2. AJOUTER UN ALIMENT DANS GOOGLE SHEETS
         function saveNewFoodToDB() {
             const name = document.getElementById('new-food-name').value;
             const cals = parseFloat(document.getElementById('new-food-kcal').value);
@@ -192,16 +177,15 @@
 
             const newFood = { action: "addAliment", name, cals, prot, carb, fat };
             
-            // Mise à jour visuelle immédiate
             customDB.push(newFood);
             loadFoodDropdown();
+            
             document.getElementById('new-food-name').value = '';
             document.getElementById('new-food-kcal').value = '';
             document.getElementById('new-food-prot').value = '';
             document.getElementById('new-food-carb').value = '';
             document.getElementById('new-food-fat').value = '';
 
-            // Envoi en arrière-plan vers Sheets
             fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -211,13 +195,13 @@
             alert(`${name} sauvegardé dans le Cloud !`);
         }
 
-        // 3. AJOUTER UN REPAS AU JOURNAL DANS GOOGLE SHEETS
         function addFoodToJournal() {
             const targetDate = document.getElementById('date-picker').value;
             const meal = document.getElementById('meal-select').value;
             const qty = parseFloat(document.getElementById('consume-qty').value);
             const foodIndex = document.getElementById('food-select').value;
             
+            if(getFullDB().length === 0) { alert("Ajoute d'abord un aliment à ta base !"); return; }
             if(!qty || isNaN(qty)) { alert("Indiquez une quantité valide."); return; }
 
             const food = getFullDB()[foodIndex];
@@ -233,12 +217,10 @@
                 fat: Math.round((food.fat / 100) * qty * 10)/10
             };
 
-            // Mise à jour visuelle immédiate
             journalLogs.push(newLog);
             renderJournal();
             document.getElementById('consume-qty').value = '';
 
-            // Envoi en arrière-plan vers Sheets
             document.getElementById('loading').style.display = 'block';
             fetch(API_URL, {
                 method: 'POST',
@@ -252,13 +234,26 @@
             });
         }
 
-        // 4. AFFICHAGE DES DONNÉES
         function renderJournal() {
             const targetDate = document.getElementById('date-picker').value;
             document.getElementById('display-date').innerText = new Date(targetDate).toLocaleDateString('fr-FR');
             
-            // Filtrer les logs pour la date sélectionnée (gère les formats de date de Sheets)
-            const dayData = journalLogs.filter(f => f.date && f.date.toString().substring(0, 10) === targetDate);
+            // Filtre robuste pour esquiver les bugs de décalage horaire de Google Sheets
+            const dayData = journalLogs.filter(f => {
+                if (!f.date) return false;
+                
+                // Cas 1 : La date est restée en texte brut "YYYY-MM-DD"
+                if (f.date.toString().startsWith(targetDate)) return true;
+                
+                // Cas 2 : Sheets a transformé la date (format ISO avec décalage)
+                const d = new Date(f.date);
+                if (!isNaN(d.getTime())) {
+                    const localDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                    return localDate === targetDate;
+                }
+                
+                return false;
+            });
             
             let totalCals = 0, totalProt = 0, totalCarb = 0, totalFat = 0;
             const journal = document.getElementById('journal-list');
@@ -287,7 +282,6 @@
             document.getElementById('fat-text').innerText = `${Math.round(totalFat)} / ${TARGETS.fat}g`;
         }
 
-        // Lancement au chargement de la page
         init();
     </script>
 </body>
