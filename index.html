@@ -12,13 +12,10 @@
         #loading { background: #f39c12; color: white; text-align: center; padding: 8px; border-radius: 5px; margin-bottom: 15px; font-weight: bold; display: none; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
         
-        /* Formulaire */
         .form-group { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; align-items: center; }
         input, select, button { padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 1em; width: 100%; }
-        @media (min-width: 600px) {
-            input, select { width: auto; flex: 1; }
-            button { width: auto; }
-        }
+        @media (min-width: 600px) { input, select { width: auto; flex: 1; } button { width: auto; } }
+        
         .btn-primary { background: #2ecc71; color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; }
         .btn-primary:hover { background: #27ae60; }
         .btn-secondary { background: #9b59b6; color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; }
@@ -31,7 +28,6 @@
         .btn-stats { background: #34495e; color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; width: 100%; margin-bottom: 20px;}
         .btn-stats:hover { background: #2c3e50; }
         
-        /* Jauges */
         .progress-container { margin-bottom: 15px; }
         .progress-label { display: flex; justify-content: space-between; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; }
         .progress-bar { width: 100%; background-color: #ecf0f1; border-radius: 10px; overflow: hidden; height: 20px; }
@@ -42,7 +38,6 @@
         .carb-fill { background-color: #f1c40f; }
         .fat-fill { background-color: #e67e22; }
 
-        /* Liste des repas */
         ul { list-style-type: none; padding: 0; margin: 0; }
         li { background: #f9f9f9; padding: 10px; border-left: 4px solid #3498db; margin-bottom: 5px; display: flex; justify-content: space-between; font-size: 0.95em; flex-wrap: wrap; gap: 5px; align-items: center;}
         .simulated-item { background: #fffbf0; border-left: 4px dashed #f39c12; }
@@ -53,12 +48,8 @@
 </head>
 <body>
 
-    <div class="header-date">
-        Aujourd'hui, on est le <span id="display-date"></span>
-    </div>
-    
+    <div class="header-date">Aujourd'hui, on est le <span id="display-date"></span></div>
     <button class="btn-stats" onclick="window.location.href='stats.html'">📈 Voir mes statistiques</button>
-    
     <div id="loading">⏳ Synchronisation...</div>
 
     <div class="card">
@@ -68,22 +59,10 @@
 
     <div class="card">
         <h2>📊 2. Objectifs du jour</h2>
-        <div class="progress-container">
-            <div class="progress-label"><span>Calories (2160 kcal)</span> <span id="cals-text">0 / 2160</span></div>
-            <div class="progress-bar"><div class="progress-fill cals-fill" id="cals-bar" style="width: 0%;"></div></div>
-        </div>
-        <div class="progress-container">
-            <div class="progress-label"><span>Protéines (170g)</span> <span id="prot-text">0 / 170g</span></div>
-            <div class="progress-bar"><div class="progress-fill prot-fill" id="prot-bar" style="width: 0%;"></div></div>
-        </div>
-        <div class="progress-container">
-            <div class="progress-label"><span>Glucides (210g)</span> <span id="carb-text">0 / 210g</span></div>
-            <div class="progress-bar"><div class="progress-fill carb-fill" id="carb-bar" style="width: 0%;"></div></div>
-        </div>
-        <div class="progress-container">
-            <div class="progress-label"><span>Lipides (70g)</span> <span id="fat-text">0 / 70g</span></div>
-            <div class="progress-bar"><div class="progress-fill fat-fill" id="fat-bar" style="width: 0%;"></div></div>
-        </div>
+        <div class="progress-container"><div class="progress-label"><span>Calories (2160)</span> <span id="cals-text">0/2160</span></div><div class="progress-bar"><div class="progress-fill cals-fill" id="cals-bar" style="width:0%;"></div></div></div>
+        <div class="progress-container"><div class="progress-label"><span>Protéines (170g)</span> <span id="prot-text">0/170g</span></div><div class="progress-bar"><div class="progress-fill prot-fill" id="prot-bar" style="width:0%;"></div></div></div>
+        <div class="progress-container"><div class="progress-label"><span>Glucides (210g)</span> <span id="carb-text">0/210g</span></div><div class="progress-bar"><div class="progress-fill carb-fill" id="carb-bar" style="width:0%;"></div></div></div>
+        <div class="progress-container"><div class="progress-label"><span>Lipides (70g)</span> <span id="fat-text">0/70g</span></div><div class="progress-bar"><div class="progress-fill fat-fill" id="fat-bar" style="width:0%;"></div></div></div>
     </div>
 
     <div class="card">
@@ -105,15 +84,13 @@
     </div>
 
     <div class="card">
-        <h2>🍽️ Journal du jour <button class="btn-clear" onclick="clearSimulations()">Effacer les simulations</button></h2>
+        <h2>🍽️ Journal <button class="btn-clear" onclick="clearSimulations()">Effacer simulations</button></h2>
         <div id="journal-list"></div>
     </div>
 
     <div class="card">
         <h2>⚙️ 4. Créer un nouvel aliment</h2>
-        <div class="form-group">
-            <input type="text" id="new-food-name" placeholder="Nom de l'aliment" required>
-        </div>
+        <div class="form-group"><input type="text" id="new-food-name" placeholder="Nom de l'aliment" required></div>
         <div class="form-group">
             <input type="number" id="new-food-kcal" placeholder="Kcal/100g" required>
             <input type="number" id="new-food-prot" placeholder="Prot (g)" required>
@@ -124,6 +101,7 @@
     </div>
 
     <script>
+        // Remplace l'URL ici si tu en as généré une nouvelle
         const API_URL = "https://script.google.com/macros/s/AKfycbz6U7pCds5-Yt1X3oQb9w2rQBs1KpJxNXVHF0aZZYeT8nFIywTAxdbKnsgXW7fjxkJi8A/exec";
         const TARGETS = { cals: 2160, prot: 170, carb: 210, fat: 70 };
         
@@ -133,9 +111,10 @@
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('date-picker').value = today;
         
-        function generateId() {
-            return Date.now().toString(36) + Math.random().toString(36).substr(2);
-        }
+        function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
+
+        // Correctif Anti-Virgules Françaises
+        const parseFr = (val) => parseFloat(String(val).replace(',', '.')) || 0;
 
         async function init() { 
             document.getElementById('loading').style.display = 'block';
@@ -144,11 +123,8 @@
                 const data = await response.json();
                 customDB = data.db || [];
                 journalLogs = data.logs || [];
-            } catch (error) {
-                console.error("Erreur de connexion:", error);
-            }
+            } catch (error) { console.error("Erreur de connexion:", error); }
             document.getElementById('loading').style.display = 'none';
-            
             loadFoodDropdown(); 
             renderJournal(); 
         }
@@ -162,18 +138,10 @@
         function loadFoodDropdown() {
             const select = document.getElementById('food-select');
             select.innerHTML = '';
-            
             if(getFullDB().length === 0) {
-                let option = document.createElement('option');
-                option.text = "Base vide - Ajoute un aliment ci-dessous";
-                select.appendChild(option);
+                select.appendChild(new Option("Base vide - Ajoute ci-dessous", ""));
             } else {
-                getFullDB().forEach((food, index) => {
-                    let option = document.createElement('option');
-                    option.value = index;
-                    option.text = food.name;
-                    select.appendChild(option);
-                });
+                getFullDB().forEach((food, index) => select.appendChild(new Option(food.name, index)));
             }
         }
 
@@ -184,10 +152,7 @@
             const carb = parseFloat(document.getElementById('new-food-carb').value);
             const fat = parseFloat(document.getElementById('new-food-fat').value);
 
-            if(!name || isNaN(cals) || isNaN(prot) || isNaN(carb) || isNaN(fat)) {
-                alert("Veuillez remplir tous les champs !"); return;
-            }
-
+            if(!name || isNaN(cals) || isNaN(prot) || isNaN(carb) || isNaN(fat)) { alert("Champs invalides !"); return; }
             const newFood = { action: "addAliment", name, cals, prot, carb, fat };
             
             customDB.push(newFood);
@@ -199,11 +164,7 @@
             document.getElementById('new-food-carb').value = '';
             document.getElementById('new-food-fat').value = '';
 
-            fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(newFood)
-            }).catch(err => console.error("Erreur sauvegarde aliment", err));
+            fetch(API_URL, { method: 'POST', body: JSON.stringify(newFood) });
         }
 
         function addFoodToJournal(isSimulation) {
@@ -212,17 +173,12 @@
             const qty = parseFloat(document.getElementById('consume-qty').value);
             const foodIndex = document.getElementById('food-select').value;
             
-            if(getFullDB().length === 0) { alert("Ajoute d'abord un aliment à ta base !"); return; }
-            if(!qty || isNaN(qty)) { alert("Indiquez une quantité valide."); return; }
+            if(getFullDB().length === 0 || !qty || isNaN(qty)) return;
 
             const food = getFullDB()[foodIndex];
             const newLog = {
                 id: isSimulation ? 'sim_' + generateId() : generateId(),
-                action: "addLog",
-                date: targetDate,
-                meal: meal,
-                name: food.name,
-                qty: qty,
+                action: "addLog", date: targetDate, meal: meal, name: food.name, qty: qty,
                 cals: Math.round((food.cals / 100) * qty),
                 prot: Math.round((food.prot / 100) * qty * 10)/10,
                 carb: Math.round((food.carb / 100) * qty * 10)/10,
@@ -236,40 +192,18 @@
 
             if(!isSimulation) {
                 document.getElementById('loading').style.display = 'block';
-                fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(newLog)
-                }).then(() => {
-                    document.getElementById('loading').style.display = 'none';
-                }).catch(err => {
-                    console.error("Erreur sauvegarde journal", err);
-                    document.getElementById('loading').style.display = 'none';
-                });
+                fetch(API_URL, { method: 'POST', body: JSON.stringify(newLog) })
+                .then(() => document.getElementById('loading').style.display = 'none');
             }
         }
 
         function deleteLog(id, isSimulation) {
-            console.log("Tentative de suppression de l'ID :", id);
             journalLogs = journalLogs.filter(log => log.id !== id);
             renderJournal();
-
             if (!isSimulation && id && !id.startsWith('sim_')) {
                 document.getElementById('loading').style.display = 'block';
-                fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: "deleteLog", id: id })
-                })
-                .then(response => response.text())
-                .then(result => {
-                    console.log("Réponse du Sheet :", result);
-                    document.getElementById('loading').style.display = 'none';
-                })
-                .catch(err => {
-                    console.error("Erreur réseau :", err);
-                    document.getElementById('loading').style.display = 'none';
-                });
+                fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "deleteLog", id: id }) })
+                .then(() => document.getElementById('loading').style.display = 'none');
             }
         }
 
@@ -287,8 +221,7 @@
                 if (f.date.toString().startsWith(targetDate)) return true;
                 const d = new Date(f.date);
                 if (!isNaN(d.getTime())) {
-                    const localDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-                    return localDate === targetDate;
+                    return (d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')) === targetDate;
                 }
                 return false;
             });
@@ -302,23 +235,22 @@
                 if(foods.length > 0) {
                     journal.innerHTML += `<div class="meal-title">${mealType}</div><ul>` + 
                         foods.map(f => {
-                            totalCals += f.cals; totalProt += f.prot; totalCarb += f.carb; totalFat += f.fat;
+                            // On utilise parseFr ici pour être immunisé contre les virgules
+                            totalCals += parseFr(f.cals); totalProt += parseFr(f.prot); 
+                            totalCarb += parseFr(f.carb); totalFat += parseFr(f.fat);
+                            
                             const simClass = f.isSimulation ? 'simulated-item' : '';
-                            const simIcon = f.isSimulation ? '🧪 <em>(Simulation)</em> ' : '';
-                            return `
-                            <li class="${simClass}">
-                                <div class="food-info">
-                                    <strong>${f.qty}g</strong> ${f.name} <br>
-                                    <small>${simIcon}</small>
-                                    <span class="food-details">${f.cals} kcal (P:${f.prot}g, G:${f.carb}g, L:${f.fat}g)</span>
-                                </div>
-                                <button class="btn-delete" onclick="deleteLog('${f.id}', ${f.isSimulation || false})" title="Supprimer">❌</button>
+                            const simIcon = f.isSimulation ? '🧪 <em>(Simu)</em> ' : '';
+                            return `<li class="${simClass}">
+                                <div class="food-info"><strong>${f.qty}g</strong> ${f.name} <br><small>${simIcon}</small>
+                                <span class="food-details">${f.cals} kcal (P:${f.prot}g, G:${f.carb}g, L:${f.fat}g)</span></div>
+                                <button class="btn-delete" onclick="deleteLog('${f.id}', ${f.isSimulation || false})">❌</button>
                             </li>`;
                         }).join('') + `</ul>`;
                 }
             });
 
-            if(dayData.length === 0) journal.innerHTML = "<p>Rien d'enregistré pour cette date.</p>";
+            if(dayData.length === 0) journal.innerHTML = "<p>Rien d'enregistré.</p>";
 
             document.getElementById('cals-bar').style.width = Math.min((totalCals / TARGETS.cals) * 100, 100) + '%';
             document.getElementById('cals-text').innerText = `${Math.round(totalCals)} / ${TARGETS.cals}`;
