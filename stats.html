@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Statistiques Nutritionnelles</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; max-width: 1000px; margin: 0 auto; padding: 15px; }
+        h1, h2 { color: #2c3e50; text-align: center; }
+        #loading { background: #3498db; color: white; text-align: center; padding: 15px; border-radius: 5px; margin-bottom: 20px; font-weight: bold; }
+        .btn-back { display: block; background: #9b59b6; color: white; text-align: center; padding: 12px; border-radius: 5px; text-decoration: none; font-weight: bold; margin-bottom: 20px; transition: 0.3s; }
+        .btn-back:hover { background: #8e44ad; }
+        .grid-container { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        @media (min-width: 768px) { .grid-container { grid-template-columns: 1fr 1fr; } }
+        .chart-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        canvas { width: 100% !important; height: auto !important; max-height: 300px; }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="btn-back">⬅️ Retour au Tracker</a>
+    
+    <h1>📊 Mon Bilan sur 7 jours</h1>
+    
+    <div id="loading">⏳ Récupération de tes données depuis Google Sheets...</div>
+
+    <div class="grid-container" id="dashboard" style="display: none;">
+        <div class="chart-card">
+            <canvas id="calsChart"></canvas>
+        </div>
+        <div class="chart-card">
+            <canvas id="protChart"></canvas>
+        </div>
+        <div class="chart-card">
+            <canvas id="carbChart"></canvas>
+        </div>
+        <div class="chart-card">
+            <canvas id="fatChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Ton URL Google Apps Script
+        const API_URL = "https://script.google.com/macros/s/AKfycbz6U7pCds5-Yt1X3oQb9w2rQBs1KpJxNXVHF0aZZYeT8nFIywTAxdbKnsgXW7fjxkJi8A/exec";
+        const TARGETS = { cals: 2160, prot: 170, carb: 210, fat: 70 };
+
+        async function init() {
+            try {
+                const response = await fetch(API_URL + "?t=" + new Date().getTime());
+                const data = await response.json();
+                processData(data.logs || []);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'grid';
+            } catch (error) {
+                console.error("Erreur de connexion:", error);
+                document.getElementById('loading').innerText = "❌ Erreur de chargement. Vérifie ta connexion.";
+            }
+        }
+
+        function processData(logs) {
+            // Grouper les macros par date
+            const dailyTotals = {};
+
+            logs.forEach(log => {
+                if (!log.date) return;
+                
+                // Extraire la date sous format YYYY-MM-DD
+                let dateStr = "";
+                if (log.date.toString().length >= 10) {
+                    dateStr = log.date.toString().substring(0, 10);
+                } else {
+                    const d = new Date(log.date);
+                    if (!isNaN(d.getTime())) {
+                         dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                    } else {
+                        return; // Ignorer si la date est invalide
+                    }
+                }
+
+                if (!dailyTotals[dateStr]) {
+                    dailyTotals[dateStr] = { cals: 0, prot: 0, carb: 0, fat: 0 };
+                }
+                
+                // On additionne (et on ignore les simulations au cas où elles se seraient glissées dans les logs en mémoire)
+                if (!log.isSimulation) {
+                    dailyTotals[dateStr].cals += parseFloat(log.cals) || 0;
+                    dailyTotals[dateStr].prot += parseFloat(log.prot) || 0;
+                    dailyTotals[dateStr].carb += parseFloat(log.carb) || 0;
+                    dailyTotals[dateStr].fat += parseFloat(log.fat) || 0;
+                }
+            });
+
+            // Trier les dates chronologiquement et prendre les 7 dernières
+            const sortedDates = Object.keys(dailyTotals).sort();
+            const last7Dates = sortedDates.slice(-7);
+
+            // Préparer les tableaux de données pour Chart.js
+            const labels = last7Dates.map(d => {
+                const parts = d.split('-');
+                return `${parts[2]}/${parts[1]}`; // Format JJ/MM
+            });
+            
+            const dataCals = last7Dates.map(d => Math.round(dailyTotals[d].cals));
+            const dataProt = last7Dates.map(d => Math.round(dailyTotals[d].prot));
+            const dataCarb = last7Dates.map(d => Math.round(dailyTotals[d].carb));
+            const dataFat = last7Dates.map(d => Math.round(dailyTotals[d].fat));
+
+            // Création des 4 graphiques
+            createChart('calsChart', 'Calories (kcal)', dataCals, TARGETS.cals, '#e74c3c');
+            createChart('protChart', 'Protéines (g)', dataProt, TARGETS.prot, '#3498db');
+            createChart('carbChart', 'Glucides (g)', dataCarb, TARGETS.carb, '#f1c40f');
+            createChart('fatChart', 'Lipides (g)', dataFat, TARGETS.fat, '#e67e22');
+        }
+
+        function createChart(canvasId, labelTitle, dataArray, targetValue, colorHex) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            
+            // Créer un tableau pour la ligne d'objectif (même valeur pour chaque jour)
+            const targetArray = Array(dataArray.length).fill(targetValue);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: dataArray.length > 0 ? arguments[2].labels : ['Aucune donnée'], // Récupère les labels du parent
+                    datasets: [
+                        {
+                            type: 'line',
+                            label: 'Objectif',
+                            data: targetArray,
+                            borderColor: '#2c3e50',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            fill: false,
+                            pointRadius: 0
+                        },
+                        {
+                            type: 'bar',
+                            label: labelTitle,
+                            data: dataArray,
+                            backgroundColor: colorHex,
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: labelTitle,
+                            font: { size: 16 }
+                        },
+                        legend: { display: false } // On cache la légende pour gagner de la place
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            // On ajoute 10% d'espace au-dessus de l'objectif pour que le graphique respire
+                            suggestedMax: targetValue * 1.1 
+                        }
+                    }
+                }
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
