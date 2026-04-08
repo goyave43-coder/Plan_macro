@@ -28,6 +28,8 @@
         .btn-clear { background: #e74c3c; color: white; border: none; cursor: pointer; font-weight: bold; padding: 5px 10px; font-size: 0.8em; border-radius: 4px; float: right; }
         .btn-delete { background: none; border: none; color: #e74c3c; cursor: pointer; font-size: 1.2em; padding: 0 5px; width: auto; align-self: center; }
         .btn-delete:hover { transform: scale(1.2); }
+        .btn-stats { background: #34495e; color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; width: 100%; margin-bottom: 20px;}
+        .btn-stats:hover { background: #2c3e50; }
         
         /* Jauges */
         .progress-container { margin-bottom: 15px; }
@@ -54,6 +56,8 @@
     <div class="header-date">
         Aujourd'hui, on est le <span id="display-date"></span>
     </div>
+    
+    <button class="btn-stats" onclick="window.location.href='stats.html'">📈 Voir mes statistiques</button>
     
     <div id="loading">⏳ Synchronisation...</div>
 
@@ -120,7 +124,6 @@
     </div>
 
     <script>
-        // Remets bien ton URL Apps Script ici
         const API_URL = "https://script.google.com/macros/s/AKfycbz6U7pCds5-Yt1X3oQb9w2rQBs1KpJxNXVHF0aZZYeT8nFIywTAxdbKnsgXW7fjxkJi8A/exec";
         const TARGETS = { cals: 2160, prot: 170, carb: 210, fat: 70 };
         
@@ -130,7 +133,6 @@
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('date-picker').value = today;
         
-        // Générateur d'ID unique simple
         function generateId() {
             return Date.now().toString(36) + Math.random().toString(36).substr(2);
         }
@@ -215,7 +217,7 @@
 
             const food = getFullDB()[foodIndex];
             const newLog = {
-                id: isSimulation ? 'sim_' + generateId() : generateId(), // ID spécifique pour la simulation
+                id: isSimulation ? 'sim_' + generateId() : generateId(),
                 action: "addLog",
                 date: targetDate,
                 meal: meal,
@@ -247,10 +249,8 @@
             }
         }
 
-        // NOUVELLE FONCTION : Supprimer un aliment
         function deleteLog(id, isSimulation) {
             console.log("Tentative de suppression de l'ID :", id);
-            // Suppression visuelle immédiate
             journalLogs = journalLogs.filter(log => log.id !== id);
             renderJournal();
 
@@ -285,7 +285,6 @@
             const dayData = journalLogs.filter(f => {
                 if (!f.date) return false;
                 if (f.date.toString().startsWith(targetDate)) return true;
-                
                 const d = new Date(f.date);
                 if (!isNaN(d.getTime())) {
                     const localDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -306,7 +305,6 @@
                             totalCals += f.cals; totalProt += f.prot; totalCarb += f.carb; totalFat += f.fat;
                             const simClass = f.isSimulation ? 'simulated-item' : '';
                             const simIcon = f.isSimulation ? '🧪 <em>(Simulation)</em> ' : '';
-                            // Ajout du bouton ❌ qui appelle deleteLog avec l'ID
                             return `
                             <li class="${simClass}">
                                 <div class="food-info">
