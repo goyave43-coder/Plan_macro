@@ -26,6 +26,8 @@
         .btn-simulation { background: #f39c12; color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; }
         .btn-simulation:hover { background: #e67e22; }
         .btn-clear { background: #e74c3c; color: white; border: none; cursor: pointer; font-weight: bold; padding: 5px 10px; font-size: 0.8em; border-radius: 4px; float: right; }
+        .btn-delete { background: none; border: none; color: #e74c3c; cursor: pointer; font-size: 1.2em; padding: 0 5px; width: auto; align-self: center; }
+        .btn-delete:hover { transform: scale(1.2); }
         
         /* Jauges */
         .progress-container { margin-bottom: 15px; }
@@ -40,10 +42,11 @@
 
         /* Liste des repas */
         ul { list-style-type: none; padding: 0; margin: 0; }
-        li { background: #f9f9f9; padding: 10px; border-left: 4px solid #3498db; margin-bottom: 5px; display: flex; justify-content: space-between; font-size: 0.95em; flex-wrap: wrap; gap: 5px;}
+        li { background: #f9f9f9; padding: 10px; border-left: 4px solid #3498db; margin-bottom: 5px; display: flex; justify-content: space-between; font-size: 0.95em; flex-wrap: wrap; gap: 5px; align-items: center;}
         .simulated-item { background: #fffbf0; border-left: 4px dashed #f39c12; }
         .meal-title { font-weight: bold; margin-top: 15px; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 5px; margin-bottom: 10px; }
-        .food-details { color: #7f8c8d; font-size: 0.85em; }
+        .food-info { flex: 1; }
+        .food-details { color: #7f8c8d; font-size: 0.85em; display: block; }
     </style>
 </head>
 <body>
@@ -52,7 +55,7 @@
         Aujourd'hui, on est le <span id="display-date"></span>
     </div>
     
-    <div id="loading">⏳ Synchronisation avec Google Sheets...</div>
+    <div id="loading">⏳ Synchronisation...</div>
 
     <div class="card">
         <h2>📅 1. Sélectionner une date</h2>
@@ -104,7 +107,6 @@
 
     <div class="card">
         <h2>⚙️ 4. Créer un nouvel aliment</h2>
-        <p style="font-size: 0.9em; color: #7f8c8d;">S'ajoute directement à ta base Google Sheets.</p>
         <div class="form-group">
             <input type="text" id="new-food-name" placeholder="Nom de l'aliment" required>
         </div>
@@ -118,6 +120,7 @@
     </div>
 
     <script>
+        // Remets bien ton URL Apps Script ici
         const API_URL = "https://script.google.com/macros/s/AKfycbz6U7pCds5-Yt1X3oQb9w2rQBs1KpJxNXVHF0aZZYeT8nFIywTAxdbKnsgXW7fjxkJi8A/exec";
         const TARGETS = { cals: 2160, prot: 170, carb: 210, fat: 70 };
         
@@ -127,6 +130,11 @@
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('date-picker').value = today;
         
+        // Générateur d'ID unique simple
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
         async function init() { 
             document.getElementById('loading').style.display = 'block';
             try {
@@ -194,8 +202,6 @@
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(newFood)
             }).catch(err => console.error("Erreur sauvegarde aliment", err));
-            
-            alert(`${name} sauvegardé dans le Cloud !`);
         }
 
         function addFoodToJournal(isSimulation) {
@@ -209,6 +215,7 @@
 
             const food = getFullDB()[foodIndex];
             const newLog = {
+                id: isSimulation ? 'sim_' + generateId() : generateId(), // ID spécifique pour la simulation
                 action: "addLog",
                 date: targetDate,
                 meal: meal,
@@ -218,7 +225,7 @@
                 prot: Math.round((food.prot / 100) * qty * 10)/10,
                 carb: Math.round((food.carb / 100) * qty * 10)/10,
                 fat: Math.round((food.fat / 100) * qty * 10)/10,
-                isSimulation: isSimulation // Marqueur de simulation
+                isSimulation: isSimulation
             };
 
             journalLogs.push(newLog);
@@ -226,7 +233,6 @@
             document.getElementById('consume-qty').value = '';
 
             if(!isSimulation) {
-                // Envoi uniquement si ce n'est pas une simulation
                 document.getElementById('loading').style.display = 'block';
                 fetch(API_URL, {
                     method: 'POST',
@@ -241,8 +247,29 @@
             }
         }
 
+        // NOUVELLE FONCTION : Supprimer un aliment
+        function deleteLog(id, isSimulation) {
+            // Suppression visuelle immédiate
+            journalLogs = journalLogs.filter(log => log.id !== id);
+            renderJournal();
+
+            // Envoi au Google Sheet seulement si ce n'est pas une simulation
+            if (!isSimulation && !id.startsWith('sim_') && id !== undefined && id !== null && id !== "") {
+                document.getElementById('loading').style.display = 'block';
+                fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: "deleteLog", id: id })
+                }).then(() => {
+                    document.getElementById('loading').style.display = 'none';
+                }).catch(err => {
+                    console.error("Erreur suppression", err);
+                    document.getElementById('loading').style.display = 'none';
+                });
+            }
+        }
+
         function clearSimulations() {
-            // Ne garde que les logs qui n'ont pas la propriété isSimulation à true
             journalLogs = journalLogs.filter(log => !log.isSimulation);
             renderJournal();
         }
@@ -273,10 +300,18 @@
                     journal.innerHTML += `<div class="meal-title">${mealType}</div><ul>` + 
                         foods.map(f => {
                             totalCals += f.cals; totalProt += f.prot; totalCarb += f.carb; totalFat += f.fat;
-                            // Ajout d'une classe spéciale et d'une icône si c'est une simulation
                             const simClass = f.isSimulation ? 'simulated-item' : '';
                             const simIcon = f.isSimulation ? '🧪 <em>(Simulation)</em> ' : '';
-                            return `<li class="${simClass}"><span><strong>${f.qty}g</strong> ${f.name} <br><small>${simIcon}</small></span> <span class="food-details">${f.cals} kcal (P:${f.prot}g, G:${f.carb}g, L:${f.fat}g)</span></li>`;
+                            // Ajout du bouton ❌ qui appelle deleteLog avec l'ID
+                            return `
+                            <li class="${simClass}">
+                                <div class="food-info">
+                                    <strong>${f.qty}g</strong> ${f.name} <br>
+                                    <small>${simIcon}</small>
+                                    <span class="food-details">${f.cals} kcal (P:${f.prot}g, G:${f.carb}g, L:${f.fat}g)</span>
+                                </div>
+                                <button class="btn-delete" onclick="deleteLog('${f.id}', ${f.isSimulation || false})" title="Supprimer">❌</button>
+                            </li>`;
                         }).join('') + `</ul>`;
                 }
             });
