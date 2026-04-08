@@ -7,7 +7,7 @@
     <style>
         * { box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; max-width: 800px; margin: 0 auto; padding: 15px; }
-        h1, h2 { color: #2c3e50; font-size: 1.3em; }
+        h1, h2 { color: #2c3e50; font-size: 1.3em; margin-top: 0; }
         .header-date { background: #3498db; color: white; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 10px; font-size: 1.2em; font-weight: bold; }
         #loading { background: #f39c12; color: white; text-align: center; padding: 8px; border-radius: 5px; margin-bottom: 15px; font-weight: bold; display: none; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
@@ -23,6 +23,9 @@
         .btn-primary:hover { background: #27ae60; }
         .btn-secondary { background: #9b59b6; color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; }
         .btn-secondary:hover { background: #8e44ad; }
+        .btn-simulation { background: #f39c12; color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-simulation:hover { background: #e67e22; }
+        .btn-clear { background: #e74c3c; color: white; border: none; cursor: pointer; font-weight: bold; padding: 5px 10px; font-size: 0.8em; border-radius: 4px; float: right; }
         
         /* Jauges */
         .progress-container { margin-bottom: 15px; }
@@ -36,9 +39,10 @@
         .fat-fill { background-color: #e67e22; }
 
         /* Liste des repas */
-        ul { list-style-type: none; padding: 0; }
+        ul { list-style-type: none; padding: 0; margin: 0; }
         li { background: #f9f9f9; padding: 10px; border-left: 4px solid #3498db; margin-bottom: 5px; display: flex; justify-content: space-between; font-size: 0.95em; flex-wrap: wrap; gap: 5px;}
-        .meal-title { font-weight: bold; margin-top: 15px; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 5px; }
+        .simulated-item { background: #fffbf0; border-left: 4px dashed #f39c12; }
+        .meal-title { font-weight: bold; margin-top: 15px; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 5px; margin-bottom: 10px; }
         .food-details { color: #7f8c8d; font-size: 0.85em; }
     </style>
 </head>
@@ -86,12 +90,15 @@
             </select>
             <select id="food-select"></select>
             <input type="number" id="consume-qty" placeholder="Qté (g/ml)" required>
-            <button class="btn-primary" onclick="addFoodToJournal()">Ajouter au journal</button>
+        </div>
+        <div class="form-group">
+            <button class="btn-primary" onclick="addFoodToJournal(false)">Ajouter au journal</button>
+            <button class="btn-simulation" onclick="addFoodToJournal(true)">🧪 Simuler</button>
         </div>
     </div>
 
     <div class="card">
-        <h2>🍽️ Journal du jour</h2>
+        <h2>🍽️ Journal du jour <button class="btn-clear" onclick="clearSimulations()">Effacer les simulations</button></h2>
         <div id="journal-list"></div>
     </div>
 
@@ -114,18 +121,15 @@
         const API_URL = "https://script.google.com/macros/s/AKfycbz6U7pCds5-Yt1X3oQb9w2rQBs1KpJxNXVHF0aZZYeT8nFIywTAxdbKnsgXW7fjxkJi8A/exec";
         const TARGETS = { cals: 2160, prot: 170, carb: 210, fat: 70 };
         
-        // État de l'application (plus d'aliments par défaut)
         let customDB = [];
         let journalLogs = [];
 
-        // Initialisation de la date
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('date-picker').value = today;
         
         async function init() { 
             document.getElementById('loading').style.display = 'block';
             try {
-                // Le "?t=" force Google à ignorer le cache et à télécharger les vraies dernières données
                 const response = await fetch(API_URL + "?t=" + new Date().getTime());
                 const data = await response.json();
                 customDB = data.db || [];
@@ -140,7 +144,6 @@
         }
 
         function getFullDB() {
-            // Nettoyage des doublons potentiels et tri alphabétique
             const uniqueDB = Array.from(new Map(customDB.map(item => [item.name, item])).values());
             uniqueDB.sort((a, b) => a.name.localeCompare(b.name));
             return uniqueDB;
@@ -195,7 +198,7 @@
             alert(`${name} sauvegardé dans le Cloud !`);
         }
 
-        function addFoodToJournal() {
+        function addFoodToJournal(isSimulation) {
             const targetDate = document.getElementById('date-picker').value;
             const meal = document.getElementById('meal-select').value;
             const qty = parseFloat(document.getElementById('consume-qty').value);
@@ -214,44 +217,49 @@
                 cals: Math.round((food.cals / 100) * qty),
                 prot: Math.round((food.prot / 100) * qty * 10)/10,
                 carb: Math.round((food.carb / 100) * qty * 10)/10,
-                fat: Math.round((food.fat / 100) * qty * 10)/10
+                fat: Math.round((food.fat / 100) * qty * 10)/10,
+                isSimulation: isSimulation // Marqueur de simulation
             };
 
             journalLogs.push(newLog);
             renderJournal();
             document.getElementById('consume-qty').value = '';
 
-            document.getElementById('loading').style.display = 'block';
-            fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(newLog)
-            }).then(() => {
-                document.getElementById('loading').style.display = 'none';
-            }).catch(err => {
-                console.error("Erreur sauvegarde journal", err);
-                document.getElementById('loading').style.display = 'none';
-            });
+            if(!isSimulation) {
+                // Envoi uniquement si ce n'est pas une simulation
+                document.getElementById('loading').style.display = 'block';
+                fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(newLog)
+                }).then(() => {
+                    document.getElementById('loading').style.display = 'none';
+                }).catch(err => {
+                    console.error("Erreur sauvegarde journal", err);
+                    document.getElementById('loading').style.display = 'none';
+                });
+            }
+        }
+
+        function clearSimulations() {
+            // Ne garde que les logs qui n'ont pas la propriété isSimulation à true
+            journalLogs = journalLogs.filter(log => !log.isSimulation);
+            renderJournal();
         }
 
         function renderJournal() {
             const targetDate = document.getElementById('date-picker').value;
             document.getElementById('display-date').innerText = new Date(targetDate).toLocaleDateString('fr-FR');
             
-            // Filtre robuste pour esquiver les bugs de décalage horaire de Google Sheets
             const dayData = journalLogs.filter(f => {
                 if (!f.date) return false;
-                
-                // Cas 1 : La date est restée en texte brut "YYYY-MM-DD"
                 if (f.date.toString().startsWith(targetDate)) return true;
                 
-                // Cas 2 : Sheets a transformé la date (format ISO avec décalage)
                 const d = new Date(f.date);
                 if (!isNaN(d.getTime())) {
                     const localDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
                     return localDate === targetDate;
                 }
-                
                 return false;
             });
             
@@ -265,7 +273,10 @@
                     journal.innerHTML += `<div class="meal-title">${mealType}</div><ul>` + 
                         foods.map(f => {
                             totalCals += f.cals; totalProt += f.prot; totalCarb += f.carb; totalFat += f.fat;
-                            return `<li><span><strong>${f.qty}g</strong> ${f.name}</span> <span class="food-details">${f.cals} kcal (P:${f.prot}g, G:${f.carb}g, L:${f.fat}g)</span></li>`;
+                            // Ajout d'une classe spéciale et d'une icône si c'est une simulation
+                            const simClass = f.isSimulation ? 'simulated-item' : '';
+                            const simIcon = f.isSimulation ? '🧪 <em>(Simulation)</em> ' : '';
+                            return `<li class="${simClass}"><span><strong>${f.qty}g</strong> ${f.name} <br><small>${simIcon}</small></span> <span class="food-details">${f.cals} kcal (P:${f.prot}g, G:${f.carb}g, L:${f.fat}g)</span></li>`;
                         }).join('') + `</ul>`;
                 }
             });
