@@ -52,7 +52,7 @@
 
     <div class="card">
         <h2>📅 1. Sélectionner une date</h2>
-        <input type="date" id="date-picker" onchange="renderJournal()">
+        <input type="date" id="date-picker" onchange="window.renderJournal()">
     </div>
 
     <div class="card">
@@ -80,8 +80,8 @@
             <input type="number" id="consume-qty" placeholder="Qté (g)">
         </div>
         <div class="form-group">
-            <button class="btn-primary" onclick="addFoodToJournal(false)">Ajouter</button>
-            <button class="btn-simulation" onclick="addFoodToJournal(true)">🧪 Simuler</button>
+            <button class="btn-primary" onclick="window.addFoodToJournal(false)">Ajouter</button>
+            <button class="btn-simulation" onclick="window.addFoodToJournal(true)">🧪 Simuler</button>
         </div>
 
         <h3>Option B : Repas complet</h3>
@@ -90,13 +90,13 @@
             <input type="number" id="repas-qty" placeholder="Nb portions" value="1" step="0.5">
         </div>
         <div class="form-group">
-            <button class="btn-primary" onclick="addRepasToJournal(false)">Ajouter ce repas</button>
-            <button class="btn-simulation" onclick="addRepasToJournal(true)">🧪 Simuler</button>
+            <button class="btn-primary" onclick="window.addRepasToJournal(false)">Ajouter ce repas</button>
+            <button class="btn-simulation" onclick="window.addRepasToJournal(true)">🧪 Simuler</button>
         </div>
     </div>
 
     <div class="card">
-        <h2>🍽️ Journal <button class="btn-clear" onclick="clearSimulations()">Effacer simulations</button></h2>
+        <h2>🍽️ Journal <button class="btn-clear" onclick="window.clearSimulations()">Effacer simulations</button></h2>
         <div id="journal-list"></div>
     </div>
 
@@ -109,7 +109,7 @@
             <input type="number" id="new-food-prot" placeholder="Prot">
             <input type="number" id="new-food-carb" placeholder="Gluc">
             <input type="number" id="new-food-fat" placeholder="Lip">
-            <button class="btn-secondary" onclick="saveNewToDB('Aliment')">Sauvegarder</button>
+            <button class="btn-secondary" onclick="window.saveNewToDB('Aliment')">Sauvegarder</button>
         </div>
 
         <h3>Créer un Repas (pour 1 portion)</h3>
@@ -119,64 +119,60 @@
             <input type="number" id="new-repas-prot" placeholder="Prot">
             <input type="number" id="new-repas-carb" placeholder="Gluc">
             <input type="number" id="new-repas-fat" placeholder="Lip">
-            <button class="btn-secondary" style="background:#8e44ad;" onclick="saveNewToDB('Repas')">Sauvegarder</button>
+            <button class="btn-secondary" style="background:#8e44ad;" onclick="window.saveNewToDB('Repas')">Sauvegarder</button>
         </div>
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbz6U7pCds5-Yt1X3oQb9w2rQBs1KpJxNXVHF0aZZYeT8nFIywTAxdbKnsgXW7fjxkJi8A/exec";
-        const TARGETS = { cals: 2160, prot: 170, carb: 210, fat: 70 };
-        
-        let customDB = [];
-        let customRepasDB = [];
-        let journalLogs = [];
+        // On protège les variables pour qu'elles soient accessibles partout
+        window.API_URL = "https://script.google.com/macros/s/AKfycbz6U7pCds5-Yt1X3oQb9w2rQBs1KpJxNXVHF0aZZYeT8nFIywTAxdbKnsgXW7fjxkJi8A/exec";
+        window.TARGETS = { cals: 2160, prot: 170, carb: 210, fat: 70 };
+        window.customDB = [];
+        window.customRepasDB = [];
+        window.journalLogs = [];
 
-        // Initialisation Date
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('date-picker').value = today;
         
-        const parseFr = (val) => parseFloat(String(val).replace(',', '.')) || 0;
-        const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
+        window.parseFr = (val) => parseFloat(String(val).replace(',', '.')) || 0;
+        window.generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
 
-        async function init() { 
+        window.initApp = async function() { 
             document.getElementById('loading').style.display = 'block';
             try {
-                const response = await fetch(API_URL + "?t=" + new Date().getTime());
+                const response = await fetch(window.API_URL + "?t=" + new Date().getTime());
                 const data = await response.json();
                 
-                customDB = data.db || [];
-                customRepasDB = data.repas || [];
-                journalLogs = data.logs || [];
+                window.customDB = data.db || [];
+                window.customRepasDB = data.repas || [];
+                window.journalLogs = data.logs || [];
                 
-                console.log("Données chargées:", journalLogs.length, "entrées journal");
-                
-                loadDropdowns(); 
-                renderJournal(); 
+                window.loadDropdowns(); 
+                window.renderJournal(); 
             } catch (error) { 
                 console.error("Erreur de chargement:", error);
                 document.getElementById('loading').innerText = "❌ Erreur de connexion au Sheet";
             }
             document.getElementById('loading').style.display = 'none';
-        }
+        };
 
-        function loadDropdowns() {
+        window.loadDropdowns = function() {
             const selectFood = document.getElementById('food-select');
             selectFood.innerHTML = '';
-            const uniqueDB = Array.from(new Map(customDB.map(item => [item.name, item])).values()).sort((a,b)=>a.name.localeCompare(b.name));
+            const uniqueDB = Array.from(new Map(window.customDB.map(item => [item.name, item])).values()).sort((a,b)=>a.name.localeCompare(b.name));
             uniqueDB.forEach((f, i) => selectFood.appendChild(new Option(f.name, i)));
 
             const selectRepas = document.getElementById('repas-select');
             selectRepas.innerHTML = '';
-            const uniqueRepas = Array.from(new Map(customRepasDB.map(item => [item.name, item])).values()).sort((a,b)=>a.name.localeCompare(b.name));
+            const uniqueRepas = Array.from(new Map(window.customRepasDB.map(item => [item.name, item])).values()).sort((a,b)=>a.name.localeCompare(b.name));
             uniqueRepas.forEach((r, i) => selectRepas.appendChild(new Option(r.name, i)));
-        }
+        };
 
-        function renderJournal() {
+        window.renderJournal = function() {
             const targetDate = document.getElementById('date-picker').value;
             document.getElementById('display-date').innerText = new Date(targetDate).toLocaleDateString('fr-FR');
             
-            // FILTRE ROBUSTE : On compare uniquement la partie YYYY-MM-DD
-            const dayData = journalLogs.filter(f => {
+            const dayData = window.journalLogs.filter(f => {
                 if (!f.date) return false;
                 let logDate = "";
                 const d = new Date(f.date);
@@ -197,8 +193,8 @@
                 if(foods.length > 0) {
                     journal.innerHTML += `<div class="meal-title">${mealType}</div><ul>` + 
                         foods.map(f => {
-                            tCals += parseFr(f.cals); tProt += parseFr(f.prot); 
-                            tCarb += parseFr(f.carb); tFat += parseFr(f.fat);
+                            tCals += window.parseFr(f.cals); tProt += window.parseFr(f.prot); 
+                            tCarb += window.parseFr(f.carb); tFat += window.parseFr(f.fat);
                             
                             const simClass = f.isSimulation ? 'simulated-item' : '';
                             const isRepas = String(f.name).includes('[Repas]');
@@ -208,7 +204,7 @@
                             return `<li class="${simClass}">
                                 <div class="food-info"><strong>${f.qty}${unit}</strong> de ${displayName}
                                 <span class="food-details">${f.cals} kcal (P:${f.prot}g, G:${f.carb}g, L:${f.fat}g)</span></div>
-                                <button class="btn-delete" onclick="deleteLog('${f.id}', ${f.isSimulation || false})">❌</button>
+                                <button class="btn-delete" onclick="window.deleteLog('${f.id}', ${f.isSimulation || false})">❌</button>
                             </li>`;
                         }).join('') + `</ul>`;
                 }
@@ -216,75 +212,75 @@
 
             if(dayData.length === 0) journal.innerHTML = "<p>Rien d'enregistré pour cette date.</p>";
 
-            // Update Jauges
-            document.getElementById('cals-bar').style.width = Math.min((tCals / TARGETS.cals) * 100, 100) + '%';
-            document.getElementById('cals-text').innerText = `${Math.round(tCals)} / ${TARGETS.cals}`;
-            document.getElementById('prot-bar').style.width = Math.min((tProt / TARGETS.prot) * 100, 100) + '%';
-            document.getElementById('prot-text').innerText = `${Math.round(tProt)} / ${TARGETS.prot}g`;
-            document.getElementById('carb-bar').style.width = Math.min((tCarb / TARGETS.carb) * 100, 100) + '%';
-            document.getElementById('carb-text').innerText = `${Math.round(tCarb)} / ${TARGETS.carb}g`;
-            document.getElementById('fat-bar').style.width = Math.min((tFat / TARGETS.fat) * 100, 100) + '%';
-            document.getElementById('fat-text').innerText = `${Math.round(tFat)} / ${TARGETS.fat}g`;
-        }
+            document.getElementById('cals-bar').style.width = Math.min((tCals / window.TARGETS.cals) * 100, 100) + '%';
+            document.getElementById('cals-text').innerText = `${Math.round(tCals)} / ${window.TARGETS.cals}`;
+            document.getElementById('prot-bar').style.width = Math.min((tProt / window.TARGETS.prot) * 100, 100) + '%';
+            document.getElementById('prot-text').innerText = `${Math.round(tProt)} / ${window.TARGETS.prot}g`;
+            document.getElementById('carb-bar').style.width = Math.min((tCarb / window.TARGETS.carb) * 100, 100) + '%';
+            document.getElementById('carb-text').innerText = `${Math.round(tCarb)} / ${window.TARGETS.carb}g`;
+            document.getElementById('fat-bar').style.width = Math.min((tFat / window.TARGETS.fat) * 100, 100) + '%';
+            document.getElementById('fat-text').innerText = `${Math.round(tFat)} / ${window.TARGETS.fat}g`;
+        };
 
-        function addFoodToJournal(isSim) {
-            const qty = parseFr(document.getElementById('consume-qty').value);
+        window.addFoodToJournal = function(isSim) {
+            const qty = window.parseFr(document.getElementById('consume-qty').value);
             const index = document.getElementById('food-select').value;
-            const food = Array.from(new Map(customDB.map(item => [item.name, item])).values()).sort((a,b)=>a.name.localeCompare(b.name))[index];
+            const food = Array.from(new Map(window.customDB.map(item => [item.name, item])).values()).sort((a,b)=>a.name.localeCompare(b.name))[index];
             if(!food || !qty) return;
-            sendLog(food.name, qty, (food.cals/100)*qty, (food.prot/100)*qty, (food.carb/100)*qty, (food.fat/100)*qty, isSim);
+            window.sendLog(food.name, qty, (food.cals/100)*qty, (food.prot/100)*qty, (food.carb/100)*qty, (food.fat/100)*qty, isSim);
             document.getElementById('consume-qty').value = '';
-        }
+        };
 
-        function addRepasToJournal(isSim) {
-            const portions = parseFr(document.getElementById('repas-qty').value);
+        window.addRepasToJournal = function(isSim) {
+            const portions = window.parseFr(document.getElementById('repas-qty').value);
             const index = document.getElementById('repas-select').value;
-            const repas = Array.from(new Map(customRepasDB.map(item => [item.name, item])).values()).sort((a,b)=>a.name.localeCompare(b.name))[index];
+            const repas = Array.from(new Map(window.customRepasDB.map(item => [item.name, item])).values()).sort((a,b)=>a.name.localeCompare(b.name))[index];
             if(!repas || !portions) return;
-            sendLog(repas.name + " [Repas]", portions, repas.cals*portions, repas.prot*portions, repas.carb*portions, repas.fat*portions, isSim);
-        }
+            window.sendLog(repas.name + " [Repas]", portions, repas.cals*portions, repas.prot*portions, repas.carb*portions, repas.fat*portions, isSim);
+        };
 
-        function sendLog(name, qty, cals, prot, carb, fat, isSim) {
+        window.sendLog = function(name, qty, cals, prot, carb, fat, isSim) {
             const newLog = {
-                id: isSim ? 'sim_'+generateId() : generateId(),
+                id: isSim ? 'sim_'+window.generateId() : window.generateId(),
                 action: "addLog", date: document.getElementById('date-picker').value, 
                 meal: document.getElementById('meal-select').value, name, qty,
                 cals: Math.round(cals), prot: Math.round(prot*10)/10, carb: Math.round(carb*10)/10, fat: Math.round(fat*10)/10,
                 isSimulation: isSim
             };
-            journalLogs.push(newLog);
-            renderJournal();
-            if(!isSim) fetch(API_URL, { method: 'POST', body: JSON.stringify(newLog) });
-        }
+            window.journalLogs.push(newLog);
+            window.renderJournal();
+            if(!isSim) fetch(window.API_URL, { method: 'POST', body: JSON.stringify(newLog) });
+        };
 
-        function deleteLog(id, isSim) {
-            journalLogs = journalLogs.filter(l => l.id !== id);
-            renderJournal();
-            if(!isSim && !id.startsWith('sim_')) fetch(API_URL, { method: 'POST', body: JSON.stringify({action:"deleteLog", id}) });
-        }
+        window.deleteLog = function(id, isSim) {
+            window.journalLogs = window.journalLogs.filter(l => l.id !== id);
+            window.renderJournal();
+            if(!isSim && !id.startsWith('sim_')) fetch(window.API_URL, { method: 'POST', body: JSON.stringify({action:"deleteLog", id}) });
+        };
 
-        function saveNewToDB(type) {
+        window.saveNewToDB = function(type) {
             const prefix = type === 'Aliment' ? 'new-food' : 'new-repas';
             const name = document.getElementById(`${prefix}-name`).value;
             const item = { 
                 action: type === 'Aliment' ? "addAliment" : "addRepas", name,
-                cals: parseFr(document.getElementById(`${prefix}-kcal`).value),
-                prot: parseFr(document.getElementById(`${prefix}-prot`).value),
-                carb: parseFr(document.getElementById(`${prefix}-carb`).value),
-                fat: parseFr(document.getElementById(`${prefix}-fat`).value)
+                cals: window.parseFr(document.getElementById(`${prefix}-kcal`).value),
+                prot: window.parseFr(document.getElementById(`${prefix}-prot`).value),
+                carb: window.parseFr(document.getElementById(`${prefix}-carb`).value),
+                fat: window.parseFr(document.getElementById(`${prefix}-fat`).value)
             };
-            if(type==='Aliment') customDB.push(item); else customRepasDB.push(item);
-            loadDropdowns();
-            fetch(API_URL, { method: 'POST', body: JSON.stringify(item) });
+            if(type==='Aliment') window.customDB.push(item); else window.customRepasDB.push(item);
+            window.loadDropdowns();
+            fetch(window.API_URL, { method: 'POST', body: JSON.stringify(item) });
             alert(name + " enregistré !");
-        }
+        };
 
-        function clearSimulations() {
-            journalLogs = journalLogs.filter(l => !l.isSimulation);
-            renderJournal();
-        }
+        window.clearSimulations = function() {
+            window.journalLogs = window.journalLogs.filter(l => !l.isSimulation);
+            window.renderJournal();
+        };
 
-        init();
+        // Lancement officiel de l'application
+        window.initApp();
     </script>
 </body>
 </html>
