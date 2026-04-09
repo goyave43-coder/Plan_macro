@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Tracker Nutritionnel Cloud</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; max-width: 800px; margin: 0 auto; padding: 15px; }
+        h1, h2 { color: #2c3e50; font-size: 1.3em; margin-top: 0; }
+        h3 { color: #34495e; font-size: 1.1em; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-top: 20px;}
+        .header-date { background: #3498db; color: white; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 10px; font-size: 1.2em; font-weight: bold; }
+        #loading { background: #f39c12; color: white; text-align: center; padding: 8px; border-radius: 5px; margin-bottom: 15px; font-weight: bold; display: none; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        
+        .form-group { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; align-items: center; }
+        input, select, button { padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 1em; width: 100%; }
+        @media (min-width: 600px) { input, select { width: auto; flex: 1; } button { width: auto; } }
+        
+        .btn-primary { background: #2ecc71; color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-primary:hover { background: #27ae60; }
+        .btn-secondary { background: #9b59b6; color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-secondary:hover { background: #8e44ad; }
+        .btn-simulation { background: #f39c12; color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-simulation:hover { background: #e67e22; }
+        .btn-clear { background: #e74c3c; color: white; border: none; cursor: pointer; font-weight: bold; padding: 5px 10px; font-size: 0.8em; border-radius: 4px; float: right; }
+        .btn-delete { background: none; border: none; color: #e74c3c; cursor: pointer; font-size: 1.2em; padding: 0 5px; width: auto; align-self: center; }
+        .btn-delete:hover { transform: scale(1.2); }
+        .btn-stats { background: #34495e; color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; width: 100%; margin-bottom: 20px;}
+        .btn-stats:hover { background: #2c3e50; }
+        
+        .progress-container { margin-bottom: 15px; }
+        .progress-label { display: flex; justify-content: space-between; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; }
+        .progress-bar { width: 100%; background-color: #ecf0f1; border-radius: 10px; overflow: hidden; height: 20px; }
+        .progress-fill { height: 100%; transition: width 0.5s ease-in-out; }
+        
+        .cals-fill { background-color: #e74c3c; }
+        .prot-fill { background-color: #3498db; }
+        .carb-fill { background-color: #f1c40f; }
+        .fat-fill { background-color: #e67e22; }
+
+        ul { list-style-type: none; padding: 0; margin: 0; }
+        li { background: #f9f9f9; padding: 10px; border-left: 4px solid #3498db; margin-bottom: 5px; display: flex; justify-content: space-between; font-size: 0.95em; flex-wrap: wrap; gap: 5px; align-items: center;}
+        .simulated-item { background: #fffbf0; border-left: 4px dashed #f39c12; }
+        .meal-title { font-weight: bold; margin-top: 15px; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 5px; margin-bottom: 10px; }
+        .food-info { flex: 1; }
+        .food-details { color: #7f8c8d; font-size: 0.85em; display: block; }
+        .badge-repas { background: #9b59b6; color: white; font-size: 0.7em; padding: 2px 6px; border-radius: 4px; margin-left: 5px; vertical-align: middle;}
+    </style>
+</head>
+<body>
+
+    <div class="header-date">Aujourd'hui, on est le <span id="display-date"></span></div>
+    <button class="btn-stats" onclick="window.location.href='stats.html'">📈 Voir mes statistiques</button>
+    <div id="loading">⏳ Synchronisation...</div>
+
+    <div class="card">
+        <h2>📅 1. Sélectionner une date</h2>
+        <input type="date" id="date-picker" onchange="renderJournal()">
+    </div>
+
+    <div class="card">
+        <h2>📊 2. Objectifs du jour</h2>
+        <div class="progress-container"><div class="progress-label"><span>Calories (2160)</span> <span id="cals-text">0/2160</span></div><div class="progress-bar"><div class="progress-fill cals-fill" id="cals-bar" style="width:0%;"></div></div></div>
+        <div class="progress-container"><div class="progress-label"><span>Protéines (170g)</span> <span id="prot-text">0/170g</span></div><div class="progress-bar"><div class="progress-fill prot-fill" id="prot-bar" style="width:0%;"></div></div></div>
+        <div class="progress-container"><div class="progress-label"><span>Glucides (210g)</span> <span id="carb-text">0/210g</span></div><div class="progress-bar"><div class="progress-fill carb-fill" id="carb-bar" style="width:0%;"></div></div></div>
+        <div class="progress-container"><div class="progress-label"><span>Lipides (70g)</span> <span id="fat-text">0/70g</span></div><div class="progress-bar"><div class="progress-fill fat-fill" id="fat-bar" style="width:0%;"></div></div></div>
+    </div>
+
+    <div class="card">
+        <h2>➕ 3. Ajouter à mon journal</h2>
+        <div class="form-group">
+            <select id="meal-select" style="background:#ecf0f1; font-weight:bold;">
+                <option value="Petit-déjeuner">Petit-déjeuner</option>
+                <option value="Déjeuner">Déjeuner</option>
+                <option value="Collation">Collation</option>
+                <option value="Dîner">Dîner</option>
+            </select>
+        </div>
+
+        <h3>Option A : Aliment au poids (en grammes)</h3>
+        <div class="form-group">
+            <select id="food-select"></select>
+            <input type="number" id="consume-qty" placeholder="Qté (g)">
+        </div>
+        <div class="form-group">
+            <button class="btn-primary" onclick="addFoodToJournal(false)">Ajouter</button>
+            <button class="btn-simulation" onclick="addFoodToJournal(true)">🧪 Simuler</button>
+        </div>
+
+        <h3>Option B : Repas enregistré (en portions)</h3>
+        <div class="form-group">
+            <select id="repas-select"></select>
+            <input type="number" id="repas-qty" placeholder="Nb portions" value="1" step="0.5">
+        </div>
+        <div class="form-group">
+            <button class="btn-primary" onclick="addRepasToJournal(false)">Ajouter ce repas</button>
+            <button class="btn-simulation" onclick="addRepasToJournal(true)">🧪 Simuler</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>🍽️ Journal <button class="btn-clear" onclick="clearSimulations()">Effacer simulations</button></h2>
+        <div id="journal-list"></div>
+    </div>
+
+    <div class="card">
+        <h2>⚙️ 4. Gérer ma base de données</h2>
+        
+        <h3>Créer un Aliment (valeurs pour 100g)</h3>
+        <div class="form-group"><input type="text" id="new-food-name" placeholder="Nom de l'aliment"></div>
+        <div class="form-group">
+            <input type="number" id="new-food-kcal" placeholder="Kcal">
+            <input type="number" id="new-food-prot" placeholder="Prot (g)">
+            <input type="number" id="new-food-carb" placeholder="Gluc (g)">
+            <input type="number" id="new-food-fat" placeholder="Lip (g)">
+            <button class="btn-secondary" onclick="saveNewToDB('Aliment')">Sauvegarder l'aliment</button>
+        </div>
+
+        <h3>Créer un Repas (valeurs totales pour 1 portion)</h3>
+        <div class="form-group"><input type="text" id="new-repas-name" placeholder="Nom du repas (ex: Poke Bowl)"></div>
+        <div class="form-group">
+            <input type="number" id="new-repas-kcal" placeholder="Kcal Totales">
+            <input type="number" id="new-repas-prot" placeholder="Prot Totales">
+            <input type="number" id="new-repas-carb" placeholder="Gluc Totaux">
+            <input type="number" id="new-repas-fat" placeholder="Lip Totaux">
+            <button class="btn-secondary" style="background:#8e44ad;" onclick="saveNewToDB('Repas')">Sauvegarder le repas</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbz6U7pCds5-Yt1X3oQb9w2rQBs1KpJxNXVHF0aZZYeT8nFIywTAxdbKnsgXW7fjxkJi8A/exec";
+        const TARGETS = { cals: 2160, prot: 170, carb: 210, fat: 70 };
+        
+        let customDB = [];
+        let customRepasDB = [];
+        let journalLogs = [];
+
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('date-picker').value = today;
+        
+        function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
+        const parseFr = (val) => parseFloat(String(val).replace(',', '.')) || 0;
+
+        async function init() { 
+            document.getElementById('loading').style.display = 'block';
+            try {
+                const response = await fetch(API_URL + "?t=" + new Date().getTime());
+                const data = await response.json();
+                customDB = data.db || [];
+                customRepasDB = data.repas || [];
+                journalLogs = data.logs || [];
+            } catch (error) { console.error("Erreur de connexion:", error); }
+            document.getElementById('loading').style.display = 'none';
+            loadDropdowns(); 
+            renderJournal(); 
+        }
+
+        function loadDropdowns() {
+            // Aliments
+            const selectFood = document.getElementById('food-select');
+            selectFood.innerHTML = '';
+            const uniqueDB = Array.from(new Map(customDB.map(item => [item.name, item])).values()).sort((a,b)=>a.name.localeCompare(b.name));
+            if(uniqueDB.length === 0) selectFood.appendChild(new Option("Base vide", ""));
+            else uniqueDB.forEach((f, i) => selectFood.appendChild(new Option(f.name, i)));
+
+            // Repas
+            const selectRepas = document.getElementById('repas-select');
+            selectRepas.innerHTML = '';
+            const uniqueRepas = Array.from(new Map(customRepasDB.map(item => [item.name, item])).values()).sort((a,b)=>a.name.localeCompare(b.name));
+            if(uniqueRepas.length === 0) selectRepas.appendChild(new Option("Aucun repas enregistré", ""));
+            else uniqueRepas.forEach((r, i) => selectRepas.appendChild(new Option(r.name, i)));
+        }
+
+        function saveNewToDB(type) {
+            const prefix = type === 'Aliment' ? 'new-food' : 'new-repas';
+            const name = document.getElementById(`${prefix}-name`).value;
+            const cals = parseFr(document.getElementById(`${prefix}-kcal`).value);
+            const prot = parseFr(document.getElementById(`${prefix}-prot`).value);
+            const carb = parseFr(document.getElementById(`${prefix}-carb`).value);
+            const fat = parseFr(document.getElementById(`${prefix}-fat`).value);
+
+            if(!name || cals===0) { alert("Nom et Calories obligatoires !"); return; }
+            
+            const newItem = { action: type === 'Aliment' ? "addAliment" : "addRepas", name, cals, prot, carb, fat };
+            
+            if(type === 'Aliment') customDB.push(newItem);
+            else customRepasDB.push(newItem);
+            
+            loadDropdowns();
+            
+            document.getElementById(`${prefix}-name`).value = '';
+            document.getElementById(`${prefix}-kcal`).value = '';
+            document.getElementById(`${prefix}-prot`).value = '';
+            document.getElementById(`${prefix}-carb`).value = '';
+            document.getElementById(`${prefix}-fat`).value = '';
+
+            fetch(API_URL, { method: 'POST', body: JSON.stringify(newItem) });
+        }
+
+        // Ajout d'un ALIMENT (Calcul avec /100)
+        function addFoodToJournal(isSimulation) {
+            const qty = parseFr(document.getElementById('consume-qty').value);
+            const index = document.getElementById('food-select').value;
+            const food = Array.from(new Map(customDB.map(item => [item.name, item])).values()).sort((a,b)=>a.name.localeCompare(b.name))[index];
+            if(!food || !qty) return;
+
+            sendLog(food.name, qty, (food.cals/100)*qty, (food.prot/100)*qty, (food.carb/100)*qty, (food.fat/100)*qty, isSimulation, false);
+            document.getElementById('consume-qty').value = '';
+        }
+
+        // Ajout d'un REPAS (Calcul avec multiplication directe)
+        function addRepasToJournal(isSimulation) {
+            const portions = parseFr(document.getElementById('repas-qty').value);
+            const index = document.getElementById('repas-select').value;
+            const repas = Array.from(new Map(customRepasDB.map(item => [item.name, item])).values()).sort((a,b)=>a.name.localeCompare(b.name))[index];
+            if(!repas || !portions) return;
+
+            sendLog(repas.name, portions, repas.cals*portions, repas.prot*portions, repas.carb*portions, repas.fat*portions, isSimulation, true);
+            document.getElementById('repas-qty').value = '1';
+        }
+
+        function sendLog(name, qty, cals, prot, carb, fat, isSimulation, isRepas) {
+            const date = document.getElementById('date-picker').value;
+            const meal = document.getElementById('meal-select').value;
+            
+            // On ajoute un tag visuel au nom si c'est un repas
+            const finalName = isRepas ? name + " [Repas]" : name;
+            
+            const newLog = {
+                id: isSimulation ? 'sim_' + generateId() : generateId(),
+                action: "addLog", date: date, meal: meal, name: finalName, qty: qty,
+                cals: Math.round(cals), prot: Math.round(prot*10)/10, carb: Math.round(carb*10)/10, fat: Math.round(fat*10)/10,
+                isSimulation: isSimulation
+            };
+
+            journalLogs.push(newLog);
+            renderJournal();
+
+            if(!isSimulation) {
+                document.getElementById('loading').style.display = 'block';
+                fetch(API_URL, { method: 'POST', body: JSON.stringify(newLog) })
+                .then(() => document.getElementById('loading').style.display = 'none');
+            }
+        }
+
+        function deleteLog(id, isSimulation) {
+            journalLogs = journalLogs.filter(log => log.id !== id);
+            renderJournal();
+            if (!isSimulation && id && !id.startsWith('sim_')) {
+                document.getElementById('loading').style.display = 'block';
+                fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "deleteLog", id: id }) })
+                .then(() => document.getElementById('loading').style.display = 'none');
+            }
+        }
+
+        function clearSimulations() {
+            journalLogs = journalLogs.filter(log => !log.isSimulation);
+            renderJournal();
+        }
+
+        function renderJournal() {
+            const targetDate = document.getElementById('date-picker').value;
+            document.getElementById('display-date').innerText = new Date(targetDate).toLocaleDateString('fr-FR');
+            
+            const dayData = journalLogs.filter(f => {
+                if (!f.date) return false;
+                if (f.date.toString().startsWith(targetDate)) return true;
+                const d = new Date(f.date);
+                if (!isNaN(d.getTime())) {
+                    return (d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')) === targetDate;
+                }
+                return false;
+            });
+            
+            let totalCals = 0, totalProt = 0, totalCarb = 0, totalFat = 0;
+            const journal = document.getElementById('journal-list');
+            journal.innerHTML = '';
+
+            ["Petit-déjeuner", "Déjeuner", "Collation", "Dîner"].forEach(mealType => {
+                const foods = dayData.filter(f => f.meal === mealType);
+                if(foods.length > 0) {
+                    journal.innerHTML += `<div class="meal-title">${mealType}</div><ul>` + 
+                        foods.map(f => {
+                            totalCals += parseFr(f.cals); totalProt += parseFr(f.prot); 
+                            totalCarb += parseFr(f.carb); totalFat += parseFr(f.fat);
+                            
+                            const simClass = f.isSimulation ? 'simulated-item' : '';
+                            const simIcon = f.isSimulation ? '🧪 <em>(Simu)</em> ' : '';
+                            
+                            // Différencier l'affichage de la quantité (grammes vs portions)
+                            const isRepas = String(f.name).includes('[Repas]');
+                            const displayName = isRepas ? f.name.replace(' [Repas]', '<span class="badge-repas">REPAS</span>') : f.name;
+                            const unit = isRepas ? (f.qty > 1 ? ' portions' : ' portion') : 'g';
+
+                            return `<li class="${simClass}">
+                                <div class="food-info"><strong>${f.qty}${unit}</strong> de ${displayName} <br><small>${simIcon}</small>
+                                <span class="food-details">${f.cals} kcal (P:${f.prot}g, G:${f.carb}g, L:${f.fat}g)</span></div>
+                                <button class="btn-delete" onclick="deleteLog('${f.id}', ${f.isSimulation || false})">❌</button>
+                            </li>`;
+                        }).join('') + `</ul>`;
+                }
+            });
+
+            if(dayData.length === 0) journal.innerHTML = "<p>Rien d'enregistré.</p>";
+
+            document.getElementById('cals-bar').style.width = Math.min((totalCals / TARGETS.cals) * 100, 100) + '%';
+            document.getElementById('cals-text').innerText = `${Math.round(totalCals)} / ${TARGETS.cals}`;
+            document.getElementById('prot-bar').style.width = Math.min((totalProt / TARGETS.prot) * 100, 100) + '%';
+            document.getElementById('prot-text').innerText = `${Math.round(totalProt)} / ${TARGETS.prot}g`;
+            document.getElementById('carb-bar').style.width = Math.min((totalCarb / TARGETS.carb) * 100, 100) + '%';
+            document.getElementById('carb-text').innerText = `${Math.round(totalCarb)} / ${TARGETS.carb}g`;
+            document.getElementById('fat-bar').style.width = Math.min((totalFat / TARGETS.fat) * 100, 100) + '%';
+            document.getElementById('fat-text').innerText = `${Math.round(totalFat)} / ${TARGETS.fat}g`;
+        }
+
+        init();
+    </script>
+</body>
+</html>
