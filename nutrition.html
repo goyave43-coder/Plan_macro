@@ -201,3 +201,125 @@
                             const unit = isRepas ? ' portions' : 'g';
 
                             return `<li class="${simClass}">
+                                <div class="food-info"><strong>${f.qty}${unit}</strong> de ${displayName}
+                                <span class="food-details">${f.cals} kcal (P:${f.prot}g, G:${f.carb}g, L:${f.fat}g)</span></div>
+                                <button class="btn-delete" onclick="window.deleteLog('${f.id}', ${f.isSimulation || false})">❌</button>
+                            </li>`;
+                        }).join('') + `</ul>`;
+                }
+            });
+
+            if(dayData.length === 0) journal.innerHTML = "<p>Rien d'enregistré pour cette date.</p>";
+
+            // Jauges
+            document.getElementById('cals-bar').style.width = Math.min((tCals / window.TARGETS.cals) * 100, 100) + '%';
+            document.getElementById('cals-text').innerText = `${Math.round(tCals)} / ${window.TARGETS.cals}`;
+            document.getElementById('prot-bar').style.width = Math.min((tProt / window.TARGETS.prot) * 100, 100) + '%';
+            document.getElementById('prot-text').innerText = `${Math.round(tProt)} / ${window.TARGETS.prot}g`;
+            document.getElementById('carb-bar').style.width = Math.min((tCarb / window.TARGETS.carb) * 100, 100) + '%';
+            document.getElementById('carb-text').innerText = `${Math.round(tCarb)} / ${window.TARGETS.carb}g`;
+            document.getElementById('fat-bar').style.width = Math.min((tFat / window.TARGETS.fat) * 100, 100) + '%';
+            document.getElementById('fat-text').innerText = `${Math.round(tFat)} / ${window.TARGETS.fat}g`;
+
+            // ----- GESTION DE LA VALIDATION (NOUVELLES RÈGLES) -----
+            const rCals = tCals / window.TARGETS.cals;
+            const rProt = tProt / window.TARGETS.prot;
+            const rCarb = tCarb / window.TARGETS.carb;
+            const rFat = tFat / window.TARGETS.fat;
+
+            // Logique : Protéines au moins 80%. Calories, Glucides, Lipides maximum 120%.
+            const canValidate = (rCals <= 1.2) && (rCarb <= 1.2) && (rFat <= 1.2) && (rProt >= 0.8);
+
+            const isAlreadyValidated = window.bilanNutriLogs.some(log => {
+                let logDate = "";
+                if(log.date) {
+                    const d = new Date(log.date);
+                    if (!isNaN(d.getTime())) logDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                    else logDate = log.date.toString().substring(0, 10);
+                }
+                return logDate === targetDate && log.done === 'Oui';
+            });
+
+            const valDiv = document.getElementById('validation-section');
+            if (isAlreadyValidated) {
+                valDiv.innerHTML = `<button style="background:#2ecc71; color:white; border:none; padding:12px; border-radius:5px; font-weight:bold; width:100%; font-size:1.1em;" disabled>✅ Journée validée avec succès !</button>`;
+            } else if (canValidate) {
+                valDiv.innerHTML = `<button onclick="window.validerJournee()" style="background:#3498db; color:white; border:none; padding:12px; border-radius:5px; font-weight:bold; width:100%; cursor:pointer; font-size:1.1em;">🏆 Valider mes objectifs du jour</button>`;
+            } else {
+                valDiv.innerHTML = `<button style="background:#bdc3c7; color:white; border:none; padding:12px; border-radius:5px; font-weight:bold; width:100%; cursor:not-allowed; font-size:0.95em;" disabled>⚠️ Protéines > 80% requis. Calories, Glucides et Lipides < 120% requis.</button>`;
+            }
+        };
+
+        window.validerJournee = function() {
+            const date = document.getElementById('date-picker').value;
+            window.bilanNutriLogs = window.bilanNutriLogs.filter(l => l.date !== date);
+            const newLog = { action: "addBilanNutri", date: date, done: "Oui" };
+            window.bilanNutriLogs.push(newLog);
+            window.renderJournal(); 
+
+            document.getElementById('loading').style.display = 'block';
+            fetch(window.API_URL, { method: 'POST', body: JSON.stringify(newLog) })
+            .then(() => document.getElementById('loading').style.display = 'none');
+        };
+
+        window.addFoodToJournal = function(isSim) {
+            const qty = window.parseFr(document.getElementById('consume-qty').value);
+            const index = document.getElementById('food-select').value;
+            const food = Array.from(new Map(window.customDB.map(item => [item.name, item])).values()).sort((a,b)=>a.name.localeCompare(b.name))[index];
+            if(!food || !qty) return;
+            window.sendLog(food.name, qty, (food.cals/100)*qty, (food.prot/100)*qty, (food.carb/100)*qty, (food.fat/100)*qty, isSim);
+            document.getElementById('consume-qty').value = '';
+        };
+
+        window.addRepasToJournal = function(isSim) {
+            const portions = window.parseFr(document.getElementById('repas-qty').value);
+            const index = document.getElementById('repas-select').value;
+            const repas = Array.from(new Map(window.customRepasDB.map(item => [item.name, item])).values()).sort((a,b)=>a.name.localeCompare(b.name))[index];
+            if(!repas || !portions) return;
+            window.sendLog(repas.name + " [Repas]", portions, repas.cals*portions, repas.prot*portions, repas.carb*portions, repas.fat*portions, isSim);
+        };
+
+        window.sendLog = function(name, qty, cals, prot, carb, fat, isSim) {
+            const newLog = {
+                id: isSim ? 'sim_'+window.generateId() : window.generateId(),
+                action: "addLog", date: document.getElementById('date-picker').value, 
+                meal: document.getElementById('meal-select').value, name, qty,
+                cals: Math.round(cals), prot: Math.round(prot*10)/10, carb: Math.round(carb*10)/10, fat: Math.round(fat*10)/10,
+                isSimulation: isSim
+            };
+            window.journalLogs.push(newLog);
+            window.renderJournal();
+            if(!isSim) fetch(window.API_URL, { method: 'POST', body: JSON.stringify(newLog) });
+        };
+
+        window.deleteLog = function(id, isSim) {
+            window.journalLogs = window.journalLogs.filter(l => l.id !== id);
+            window.renderJournal();
+            if(!isSim && !id.startsWith('sim_')) fetch(window.API_URL, { method: 'POST', body: JSON.stringify({action:"deleteLog", id}) });
+        };
+
+        window.saveNewToDB = function(type) {
+            const prefix = type === 'Aliment' ? 'new-food' : 'new-repas';
+            const name = document.getElementById(`${prefix}-name`).value;
+            const item = { 
+                action: type === 'Aliment' ? "addAliment" : "addRepas", name,
+                cals: window.parseFr(document.getElementById(`${prefix}-kcal`).value),
+                prot: window.parseFr(document.getElementById(`${prefix}-prot`).value),
+                carb: window.parseFr(document.getElementById(`${prefix}-carb`).value),
+                fat: window.parseFr(document.getElementById(`${prefix}-fat`).value)
+            };
+            if(type==='Aliment') window.customDB.push(item); else window.customRepasDB.push(item);
+            window.loadDropdowns();
+            fetch(window.API_URL, { method: 'POST', body: JSON.stringify(item) });
+            alert(name + " enregistré !");
+        };
+
+        window.clearSimulations = function() {
+            window.journalLogs = window.journalLogs.filter(l => !l.isSimulation);
+            window.renderJournal();
+        };
+
+        window.initApp();
+    </script>
+</body>
+</html>
