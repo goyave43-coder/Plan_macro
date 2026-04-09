@@ -22,7 +22,7 @@
         .grid-container { display: grid; grid-template-columns: 1fr; gap: 20px; margin-bottom: 40px;}
         @media (min-width: 768px) { .grid-container { grid-template-columns: 1fr 1fr; } }
         .chart-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .full-width-card { grid-column: 1 / -1; } /* NOUVEAU: Permet au graphique PR de prendre toute la largeur */
+        .full-width-card { grid-column: 1 / -1; } 
         canvas { width: 100% !important; height: auto !important; max-height: 300px; }
         
         .history-section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 30px;}
@@ -87,7 +87,7 @@
         window.rawLogs = [];
         window.rawSport = [];
         window.rawNutri = [];
-        window.rawPRs = []; // NOUVEAU
+        window.rawPRs = []; 
         window.charts = {}; 
 
         const parseFr = (val) => parseFloat(String(val).replace(',', '.')) || 0;
@@ -100,14 +100,14 @@
                 window.rawLogs = data.logs || [];
                 window.rawSport = data.sport || [];
                 window.rawNutri = data.bilanNutri || [];
-                window.rawPRs = data.prs || []; // Récupération des PRs
+                window.rawPRs = data.prs || []; 
                 
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('dashboard').style.display = 'grid';
                 document.getElementById('history-container').style.display = 'block';
                 
                 window.updateDashboard(); 
-                window.renderPRChart(); // Le graph des PRs se dessine tout seul !
+                window.renderPRChart(); 
             } catch (error) {
                 document.getElementById('loading').innerText = "❌ Erreur de chargement. Vérifie ta connexion.";
             }
@@ -125,12 +125,11 @@
             renderHistoryTable(dateRange);
         };
 
-        // ---------- GRAPHIQUE PR (Courbe globale) ----------
+        // ---------- GRAPHIQUE PR ----------
         window.renderPRChart = function() {
             if (window.rawPRs.length === 0) return;
             document.getElementById('pr-card').style.display = 'block';
 
-            // Grouper les PR par date
             const prByDate = {};
             window.rawPRs.forEach(pr => {
                 const d = parseDate(pr.date);
@@ -142,7 +141,6 @@
                 if (pr.exercice === 'Squat') prByDate[d].Squat = Math.max(prByDate[d].Squat || 0, weight);
             });
 
-            // Trier les dates du plus vieux au plus récent
             const sortedDates = Object.keys(prByDate).sort();
             
             const labels = [];
@@ -153,9 +151,8 @@
 
             sortedDates.forEach(date => {
                 const parts = date.split('-');
-                labels.push(`${parts[2]}/${parts[1]}`); // Affichage JJ/MM
+                labels.push(`${parts[2]}/${parts[1]}`);
 
-                // Si un record est battu, on le met à jour. Sinon on garde la valeur précédente (plateau)
                 if (prByDate[date].Bench) lastBench = prByDate[date].Bench;
                 if (prByDate[date].Squat) lastSquat = prByDate[date].Squat;
 
@@ -167,7 +164,7 @@
             if (window.charts['prChart']) window.charts['prChart'].destroy();
 
             window.charts['prChart'] = new Chart(ctx, {
-                type: 'line', // Graphique en courbe !
+                type: 'line',
                 data: {
                     labels: labels,
                     datasets: [
@@ -177,8 +174,8 @@
                             borderColor: '#3498db',
                             backgroundColor: '#3498db',
                             borderWidth: 3,
-                            tension: 0.1, // Légère courbe
-                            spanGaps: true, // Relie les points s'il y a des trous
+                            tension: 0.1,
+                            spanGaps: true,
                             pointRadius: 5
                         },
                         {
@@ -201,13 +198,14 @@
                         legend: { display: true, position: 'top' }
                     },
                     scales: {
-                        y: { beginAtZero: false, title: { display: true, text: 'Poids (kg)' } }
+                        // C'est ICI que la magie opère (beginAtZero: true) !
+                        y: { beginAtZero: true, title: { display: true, text: 'Poids (kg)' } }
                     }
                 }
             });
         };
 
-        // ---------- GRAPHIQUES NUTRITION (Modifiés pour s'adapter à la période) ----------
+        // ---------- GRAPHIQUES NUTRITION ----------
         function renderCharts(dateRange) {
             const dailyTotals = {};
             dateRange.forEach(d => dailyTotals[d] = { cals: 0, prot: 0, carb: 0, fat: 0 });
