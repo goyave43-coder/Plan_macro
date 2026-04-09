@@ -45,9 +45,7 @@
 <body>
 
     <a href="index.html" class="btn-back">⬅️ Menu Principal</a>
-    
     <div class="header-date">Le <span id="display-date"></span></div>
-    
     <div id="loading">⏳ Chargement des données...</div>
 
     <div class="card">
@@ -61,6 +59,9 @@
         <div class="progress-container"><div class="progress-label"><span>Protéines (170g)</span> <span id="prot-text">0/170g</span></div><div class="progress-bar"><div class="progress-fill prot-fill" id="prot-bar" style="width:0%;"></div></div></div>
         <div class="progress-container"><div class="progress-label"><span>Glucides (210g)</span> <span id="carb-text">0/210g</span></div><div class="progress-bar"><div class="progress-fill carb-fill" id="carb-bar" style="width:0%;"></div></div></div>
         <div class="progress-container"><div class="progress-label"><span>Lipides (70g)</span> <span id="fat-text">0/70g</span></div><div class="progress-bar"><div class="progress-fill fat-fill" id="fat-bar" style="width:0%;"></div></div></div>
+        
+        <div id="validation-section" style="margin-top:20px; border-top:2px solid #ecf0f1; padding-top:15px; text-align:center;">
+            </div>
     </div>
 
     <div class="card">
@@ -124,12 +125,12 @@
     </div>
 
     <script>
-        // On protège les variables pour qu'elles soient accessibles partout
         window.API_URL = "https://script.google.com/macros/s/AKfycbz6U7pCds5-Yt1X3oQb9w2rQBs1KpJxNXVHF0aZZYeT8nFIywTAxdbKnsgXW7fjxkJi8A/exec";
         window.TARGETS = { cals: 2160, prot: 170, carb: 210, fat: 70 };
         window.customDB = [];
         window.customRepasDB = [];
         window.journalLogs = [];
+        window.bilanNutriLogs = [];
 
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('date-picker').value = today;
@@ -146,6 +147,7 @@
                 window.customDB = data.db || [];
                 window.customRepasDB = data.repas || [];
                 window.journalLogs = data.logs || [];
+                window.bilanNutriLogs = data.bilanNutri || [];
                 
                 window.loadDropdowns(); 
                 window.renderJournal(); 
@@ -176,11 +178,8 @@
                 if (!f.date) return false;
                 let logDate = "";
                 const d = new Date(f.date);
-                if (!isNaN(d.getTime())) {
-                    logDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-                } else {
-                    logDate = f.date.toString().substring(0, 10);
-                }
+                if (!isNaN(d.getTime())) logDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                else logDate = f.date.toString().substring(0, 10);
                 return logDate === targetDate;
             });
             
@@ -212,6 +211,7 @@
 
             if(dayData.length === 0) journal.innerHTML = "<p>Rien d'enregistré pour cette date.</p>";
 
+            // Jauges
             document.getElementById('cals-bar').style.width = Math.min((tCals / window.TARGETS.cals) * 100, 100) + '%';
             document.getElementById('cals-text').innerText = `${Math.round(tCals)} / ${window.TARGETS.cals}`;
             document.getElementById('prot-bar').style.width = Math.min((tProt / window.TARGETS.prot) * 100, 100) + '%';
@@ -220,6 +220,42 @@
             document.getElementById('carb-text').innerText = `${Math.round(tCarb)} / ${window.TARGETS.carb}g`;
             document.getElementById('fat-bar').style.width = Math.min((tFat / window.TARGETS.fat) * 100, 100) + '%';
             document.getElementById('fat-text').innerText = `${Math.round(tFat)} / ${window.TARGETS.fat}g`;
+
+            // ----- GESTION DE LA VALIDATION (NOUVEAU) -----
+            const isGood = (val, target) => { const r = val / target; return r >= 0.8 && r <= 1.2; };
+            const canValidate = isGood(tCals, window.TARGETS.cals) && isGood(tProt, window.TARGETS.prot) && 
+                                isGood(tCarb, window.TARGETS.carb) && isGood(tFat, window.TARGETS.fat);
+
+            const isAlreadyValidated = window.bilanNutriLogs.some(log => {
+                let logDate = "";
+                if(log.date) {
+                    const d = new Date(log.date);
+                    if (!isNaN(d.getTime())) logDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                    else logDate = log.date.toString().substring(0, 10);
+                }
+                return logDate === targetDate && log.done === 'Oui';
+            });
+
+            const valDiv = document.getElementById('validation-section');
+            if (isAlreadyValidated) {
+                valDiv.innerHTML = `<button style="background:#2ecc71; color:white; border:none; padding:12px; border-radius:5px; font-weight:bold; width:100%; font-size:1.1em;" disabled>✅ Journée validée avec succès !</button>`;
+            } else if (canValidate) {
+                valDiv.innerHTML = `<button onclick="window.validerJournee()" style="background:#3498db; color:white; border:none; padding:12px; border-radius:5px; font-weight:bold; width:100%; cursor:pointer; font-size:1.1em;">🏆 Valider mes objectifs du jour</button>`;
+            } else {
+                valDiv.innerHTML = `<button style="background:#bdc3c7; color:white; border:none; padding:12px; border-radius:5px; font-weight:bold; width:100%; cursor:not-allowed; font-size:1em;" disabled>⚠️ Tous les objectifs doivent être entre 80% et 120%</button>`;
+            }
+        };
+
+        window.validerJournee = function() {
+            const date = document.getElementById('date-picker').value;
+            window.bilanNutriLogs = window.bilanNutriLogs.filter(l => l.date !== date); // Nettoie si doublon
+            const newLog = { action: "addBilanNutri", date: date, done: "Oui" };
+            window.bilanNutriLogs.push(newLog);
+            window.renderJournal(); // Mise à jour visuelle immédiate
+
+            document.getElementById('loading').style.display = 'block';
+            fetch(window.API_URL, { method: 'POST', body: JSON.stringify(newLog) })
+            .then(() => document.getElementById('loading').style.display = 'none');
         };
 
         window.addFoodToJournal = function(isSim) {
@@ -279,7 +315,6 @@
             window.renderJournal();
         };
 
-        // Lancement officiel de l'application
         window.initApp();
     </script>
 </body>
