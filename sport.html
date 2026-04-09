@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suivi Sport</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; max-width: 600px; margin: 0 auto; padding: 15px; }
+        h1, h2 { color: #2c3e50; text-align: center; }
+        .btn-back { display: block; background: #34495e; color: white; text-align: center; padding: 10px; border-radius: 5px; text-decoration: none; font-weight: bold; margin-bottom: 20px; transition: 0.3s; }
+        #loading { background: #f39c12; color: white; text-align: center; padding: 8px; border-radius: 5px; margin-bottom: 15px; font-weight: bold; display: none; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; text-align: center; }
+        
+        .date-picker { padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 1.1em; margin-bottom: 20px; }
+        
+        .btn-group { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
+        .btn-yes { background: #2ecc71; color: white; border: none; padding: 15px 30px; font-size: 1.2em; border-radius: 8px; cursor: pointer; flex: 1; font-weight: bold; }
+        .btn-no { background: #e74c3c; color: white; border: none; padding: 15px 30px; font-size: 1.2em; border-radius: 8px; cursor: pointer; flex: 1; font-weight: bold; }
+        
+        .history-list { list-style: none; padding: 0; text-align: left; }
+        .history-item { background: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #ddd;}
+        .border-yes { border-left-color: #2ecc71; }
+        .border-no { border-left-color: #e74c3c; }
+        .status-badge { padding: 5px 10px; border-radius: 15px; font-size: 0.9em; font-weight: bold; color: white; }
+        .bg-yes { background-color: #2ecc71; }
+        .bg-no { background-color: #e74c3c; }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="btn-back">⬅️ Menu Principal</a>
+    
+    <h1>💪 Journal de Sport</h1>
+    <div id="loading">⏳ Sauvegarde en cours...</div>
+
+    <div class="card">
+        <h2>Aujourd'hui, as-tu atteint ton objectif sport ?</h2>
+        <input type="date" id="date-picker" class="date-picker" onchange="renderHistory()">
+        
+        <div class="btn-group">
+            <button class="btn-yes" onclick="logSport('Oui')">✅ OUI</button>
+            <button class="btn-no" onclick="logSport('Non')">❌ NON</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Historique récent</h2>
+        <ul class="history-list" id="history-list">
+            </ul>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbz6U7pCds5-Yt1X3oQb9w2rQBs1KpJxNXVHF0aZZYeT8nFIywTAxdbKnsgXW7fjxkJi8A/exec";
+        
+        let sportLogs = [];
+
+        // Initialisation de la date
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('date-picker').value = today;
+
+        async function init() { 
+            document.getElementById('loading').innerText = "⏳ Chargement...";
+            document.getElementById('loading').style.display = 'block';
+            try {
+                const response = await fetch(API_URL + "?t=" + new Date().getTime());
+                const data = await response.json();
+                sportLogs = data.sport || [];
+            } catch (error) { console.error("Erreur:", error); }
+            document.getElementById('loading').style.display = 'none';
+            renderHistory(); 
+        }
+
+        function logSport(status) {
+            const date = document.getElementById('date-picker').value;
+            
+            // On ajoute visuellement à la liste (en remplaçant s'il y a déjà une entrée pour ce jour)
+            sportLogs = sportLogs.filter(log => !String(log.date).includes(date));
+            sportLogs.push({ date: date, done: status });
+            renderHistory();
+
+            // On envoie au serveur
+            document.getElementById('loading').innerText = "⏳ Sauvegarde...";
+            document.getElementById('loading').style.display = 'block';
+            
+            const payload = { action: "addSportLog", date: date, done: status };
+            fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) })
+            .then(() => document.getElementById('loading').style.display = 'none')
+            .catch(err => {
+                console.error("Erreur", err);
+                document.getElementById('loading').style.display = 'none';
+            });
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('history-list');
+            list.innerHTML = '';
+
+            // Trier les logs du plus récent au plus ancien (nettoyage des dates Google Sheets)
+            const cleanedLogs = {};
+            sportLogs.forEach(log => {
+                if(!log.date) return;
+                let dateStr = "";
+                const d = new Date(log.date);
+                if (!isNaN(d.getTime())) {
+                     dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                } else if (log.date.toString().length >= 10) {
+                    dateStr = log.date.toString().substring(0, 10);
+                } else { return; }
+                
+                // Si on a cliqué plusieurs fois sur la même date, ça garde la dernière réponse
+                cleanedLogs[dateStr] = log.done; 
+            });
+
+            // Récupérer les dates triées inversées
+            const sortedDates = Object.keys(cleanedLogs).sort().reverse();
+
+            if(sortedDates.length === 0) {
+                list.innerHTML = "<p style='color:#7f8c8d;'>Aucun historique pour le moment.</p>";
+                return;
+            }
+
+            // Afficher
+            sortedDates.forEach(date => {
+                const status = cleanedLogs[date];
+                const dateObj = new Date(date);
+                const displayDate = dateObj.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' });
+                
+                const isYes = status === 'Oui';
+                const borderClass = isYes ? 'border-yes' : 'border-no';
+                const bgClass = isYes ? 'bg-yes' : 'bg-no';
+                const textStatus = isYes ? 'Fait ✅' : 'Raté ❌';
+
+                list.innerHTML += `
+                    <li class="history-item ${borderClass}">
+                        <span style="text-transform: capitalize;"><strong>${displayDate}</strong></span>
+                        <span class="status-badge ${bgClass}">${textStatus}</span>
+                    </li>
+                `;
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
