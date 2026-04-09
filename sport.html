@@ -12,11 +12,12 @@
         #loading { background: #f39c12; color: white; text-align: center; padding: 8px; border-radius: 5px; margin-bottom: 15px; font-weight: bold; display: none; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; text-align: center; }
         
-        .date-picker { padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 1.1em; margin-bottom: 20px; }
+        .date-picker, select, input[type="number"] { padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 1.1em; margin-bottom: 10px; width: 100%; }
         
-        .btn-group { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
+        .btn-group { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
         .btn-yes { background: #2ecc71; color: white; border: none; padding: 15px 30px; font-size: 1.2em; border-radius: 8px; cursor: pointer; flex: 1; font-weight: bold; }
         .btn-no { background: #e74c3c; color: white; border: none; padding: 15px 30px; font-size: 1.2em; border-radius: 8px; cursor: pointer; flex: 1; font-weight: bold; }
+        .btn-primary { background: #3498db; color: white; border: none; padding: 12px; font-size: 1.1em; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 10px;}
         
         .history-list { list-style: none; padding: 0; text-align: left; }
         .history-item { background: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #ddd;}
@@ -32,35 +33,42 @@
     <a href="index.html" class="btn-back">⬅️ Menu Principal</a>
     
     <h1>💪 Journal de Sport</h1>
-    <div id="loading">⏳ Sauvegarde en cours...</div>
+    <div id="loading">⏳ Synchronisation...</div>
 
     <div class="card">
-        <h2>Aujourd'hui, as-tu atteint ton objectif sport ?</h2>
+        <h2>Objectif du jour</h2>
         <input type="date" id="date-picker" class="date-picker" onchange="renderHistory()">
-        
         <div class="btn-group">
-            <button class="btn-yes" onclick="logSport('Oui')">✅ OUI</button>
-            <button class="btn-no" onclick="logSport('Non')">❌ NON</button>
+            <button class="btn-yes" onclick="logSport('Oui')">✅ FAIT</button>
+            <button class="btn-no" onclick="logSport('Non')">❌ RATÉ</button>
         </div>
+    </div>
+
+    <div class="card" style="border: 2px solid #3498db;">
+        <h2>🏆 Enregistrer un nouveau PR</h2>
+        <input type="date" id="pr-date" class="date-picker">
+        <select id="pr-exo">
+            <option value="Bench">Développé Couché (Bench)</option>
+            <option value="Squat">Squat</option>
+        </select>
+        <input type="number" id="pr-weight" placeholder="Poids validé (en kg)" step="0.5">
+        <button class="btn-primary" onclick="logPR()">Enregistrer mon Record !</button>
     </div>
 
     <div class="card">
         <h2>Historique récent</h2>
-        <ul class="history-list" id="history-list">
-            </ul>
+        <ul class="history-list" id="history-list"></ul>
     </div>
 
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbz6U7pCds5-Yt1X3oQb9w2rQBs1KpJxNXVHF0aZZYeT8nFIywTAxdbKnsgXW7fjxkJi8A/exec";
-        
         let sportLogs = [];
 
-        // Initialisation de la date
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('date-picker').value = today;
+        document.getElementById('pr-date').value = today;
 
         async function init() { 
-            document.getElementById('loading').innerText = "⏳ Chargement...";
             document.getElementById('loading').style.display = 'block';
             try {
                 const response = await fetch(API_URL + "?t=" + new Date().getTime());
@@ -73,70 +81,56 @@
 
         function logSport(status) {
             const date = document.getElementById('date-picker').value;
-            
-            // On ajoute visuellement à la liste (en remplaçant s'il y a déjà une entrée pour ce jour)
             sportLogs = sportLogs.filter(log => !String(log.date).includes(date));
             sportLogs.push({ date: date, done: status });
             renderHistory();
 
-            // On envoie au serveur
-            document.getElementById('loading').innerText = "⏳ Sauvegarde...";
             document.getElementById('loading').style.display = 'block';
-            
-            const payload = { action: "addSportLog", date: date, done: status };
-            fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) })
-            .then(() => document.getElementById('loading').style.display = 'none')
-            .catch(err => {
-                console.error("Erreur", err);
+            fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "addSportLog", date: date, done: status }) })
+            .then(() => document.getElementById('loading').style.display = 'none');
+        }
+
+        // NOUVELLE FONCTION PR
+        function logPR() {
+            const date = document.getElementById('pr-date').value;
+            const exo = document.getElementById('pr-exo').value;
+            const weight = document.getElementById('pr-weight').value;
+
+            if(!weight || weight <= 0) { alert("Veuillez entrer un poids valide."); return; }
+
+            document.getElementById('loading').style.display = 'block';
+            fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "addPR", date: date, exercice: exo, poids: weight }) })
+            .then(() => {
                 document.getElementById('loading').style.display = 'none';
+                document.getElementById('pr-weight').value = '';
+                alert("🎉 Boom ! PR Enregistré !");
             });
         }
 
         function renderHistory() {
             const list = document.getElementById('history-list');
             list.innerHTML = '';
-
-            // Trier les logs du plus récent au plus ancien (nettoyage des dates Google Sheets)
             const cleanedLogs = {};
             sportLogs.forEach(log => {
                 if(!log.date) return;
                 let dateStr = "";
                 const d = new Date(log.date);
-                if (!isNaN(d.getTime())) {
-                     dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-                } else if (log.date.toString().length >= 10) {
-                    dateStr = log.date.toString().substring(0, 10);
-                } else { return; }
-                
-                // Si on a cliqué plusieurs fois sur la même date, ça garde la dernière réponse
+                if (!isNaN(d.getTime())) dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                else dateStr = log.date.toString().substring(0, 10);
                 cleanedLogs[dateStr] = log.done; 
             });
 
-            // Récupérer les dates triées inversées
             const sortedDates = Object.keys(cleanedLogs).sort().reverse();
+            if(sortedDates.length === 0) { list.innerHTML = "<p>Aucun historique.</p>"; return; }
 
-            if(sortedDates.length === 0) {
-                list.innerHTML = "<p style='color:#7f8c8d;'>Aucun historique pour le moment.</p>";
-                return;
-            }
-
-            // Afficher
             sortedDates.forEach(date => {
                 const status = cleanedLogs[date];
-                const dateObj = new Date(date);
-                const displayDate = dateObj.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' });
-                
+                const displayDate = new Date(date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' });
                 const isYes = status === 'Oui';
-                const borderClass = isYes ? 'border-yes' : 'border-no';
-                const bgClass = isYes ? 'bg-yes' : 'bg-no';
-                const textStatus = isYes ? 'Fait ✅' : 'Raté ❌';
-
-                list.innerHTML += `
-                    <li class="history-item ${borderClass}">
-                        <span style="text-transform: capitalize;"><strong>${displayDate}</strong></span>
-                        <span class="status-badge ${bgClass}">${textStatus}</span>
-                    </li>
-                `;
+                list.innerHTML += `<li class="history-item ${isYes ? 'border-yes' : 'border-no'}">
+                    <span style="text-transform: capitalize;"><strong>${displayDate}</strong></span>
+                    <span class="status-badge ${isYes ? 'bg-yes' : 'bg-no'}">${isYes ? 'Fait ✅' : 'Raté ❌'}</span>
+                </li>`;
             });
         }
 
