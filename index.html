@@ -8,11 +8,12 @@
         * { box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; max-width: 800px; margin: 0 auto; padding: 15px; }
         h1, h2 { color: #2c3e50; font-size: 1.3em; margin-top: 0; }
+        h3 { color: #34495e; font-size: 1.1em; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-top: 20px;}
         .header-date { background: #3498db; color: white; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 10px; font-size: 1.2em; font-weight: bold; }
         #loading { background: #f39c12; color: white; text-align: center; padding: 8px; border-radius: 5px; margin-bottom: 15px; font-weight: bold; display: none; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
         
-        .form-group { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; align-items: center; }
+        .form-group { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; align-items: center; }
         input, select, button { padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 1em; width: 100%; }
         @media (min-width: 600px) { input, select { width: auto; flex: 1; } button { width: auto; } }
         
@@ -44,6 +45,7 @@
         .meal-title { font-weight: bold; margin-top: 15px; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 5px; margin-bottom: 10px; }
         .food-info { flex: 1; }
         .food-details { color: #7f8c8d; font-size: 0.85em; display: block; }
+        .badge-repas { background: #9b59b6; color: white; font-size: 0.7em; padding: 2px 6px; border-radius: 4px; margin-left: 5px; vertical-align: middle;}
     </style>
 </head>
 <body>
@@ -66,20 +68,34 @@
     </div>
 
     <div class="card">
-        <h2>➕ 3. Ajouter à mon repas</h2>
+        <h2>➕ 3. Ajouter à mon journal</h2>
         <div class="form-group">
-            <select id="meal-select">
+            <select id="meal-select" style="background:#ecf0f1; font-weight:bold;">
                 <option value="Petit-déjeuner">Petit-déjeuner</option>
                 <option value="Déjeuner">Déjeuner</option>
                 <option value="Collation">Collation</option>
                 <option value="Dîner">Dîner</option>
             </select>
+        </div>
+
+        <h3>Option A : Aliment au poids (en grammes)</h3>
+        <div class="form-group">
             <select id="food-select"></select>
-            <input type="number" id="consume-qty" placeholder="Qté (g/ml)" required>
+            <input type="number" id="consume-qty" placeholder="Qté (g)">
         </div>
         <div class="form-group">
-            <button class="btn-primary" onclick="addFoodToJournal(false)">Ajouter au journal</button>
+            <button class="btn-primary" onclick="addFoodToJournal(false)">Ajouter</button>
             <button class="btn-simulation" onclick="addFoodToJournal(true)">🧪 Simuler</button>
+        </div>
+
+        <h3>Option B : Repas enregistré (en portions)</h3>
+        <div class="form-group">
+            <select id="repas-select"></select>
+            <input type="number" id="repas-qty" placeholder="Nb portions" value="1" step="0.5">
+        </div>
+        <div class="form-group">
+            <button class="btn-primary" onclick="addRepasToJournal(false)">Ajouter ce repas</button>
+            <button class="btn-simulation" onclick="addRepasToJournal(true)">🧪 Simuler</button>
         </div>
     </div>
 
@@ -89,31 +105,41 @@
     </div>
 
     <div class="card">
-        <h2>⚙️ 4. Créer un nouvel aliment</h2>
-        <div class="form-group"><input type="text" id="new-food-name" placeholder="Nom de l'aliment" required></div>
+        <h2>⚙️ 4. Gérer ma base de données</h2>
+        
+        <h3>Créer un Aliment (valeurs pour 100g)</h3>
+        <div class="form-group"><input type="text" id="new-food-name" placeholder="Nom de l'aliment"></div>
         <div class="form-group">
-            <input type="number" id="new-food-kcal" placeholder="Kcal/100g" required>
-            <input type="number" id="new-food-prot" placeholder="Prot (g)" required>
-            <input type="number" id="new-food-carb" placeholder="Gluc (g)" required>
-            <input type="number" id="new-food-fat" placeholder="Lip (g)" required>
-            <button class="btn-secondary" onclick="saveNewFoodToDB()">Sauvegarder l'aliment</button>
+            <input type="number" id="new-food-kcal" placeholder="Kcal">
+            <input type="number" id="new-food-prot" placeholder="Prot (g)">
+            <input type="number" id="new-food-carb" placeholder="Gluc (g)">
+            <input type="number" id="new-food-fat" placeholder="Lip (g)">
+            <button class="btn-secondary" onclick="saveNewToDB('Aliment')">Sauvegarder l'aliment</button>
+        </div>
+
+        <h3>Créer un Repas (valeurs totales pour 1 portion)</h3>
+        <div class="form-group"><input type="text" id="new-repas-name" placeholder="Nom du repas (ex: Poke Bowl)"></div>
+        <div class="form-group">
+            <input type="number" id="new-repas-kcal" placeholder="Kcal Totales">
+            <input type="number" id="new-repas-prot" placeholder="Prot Totales">
+            <input type="number" id="new-repas-carb" placeholder="Gluc Totaux">
+            <input type="number" id="new-repas-fat" placeholder="Lip Totaux">
+            <button class="btn-secondary" style="background:#8e44ad;" onclick="saveNewToDB('Repas')">Sauvegarder le repas</button>
         </div>
     </div>
 
     <script>
-        // Remplace l'URL ici si tu en as généré une nouvelle
         const API_URL = "https://script.google.com/macros/s/AKfycbz6U7pCds5-Yt1X3oQb9w2rQBs1KpJxNXVHF0aZZYeT8nFIywTAxdbKnsgXW7fjxkJi8A/exec";
         const TARGETS = { cals: 2160, prot: 170, carb: 210, fat: 70 };
         
         let customDB = [];
+        let customRepasDB = [];
         let journalLogs = [];
 
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('date-picker').value = today;
         
         function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
-
-        // Correctif Anti-Virgules Françaises
         const parseFr = (val) => parseFloat(String(val).replace(',', '.')) || 0;
 
         async function init() { 
@@ -122,73 +148,94 @@
                 const response = await fetch(API_URL + "?t=" + new Date().getTime());
                 const data = await response.json();
                 customDB = data.db || [];
+                customRepasDB = data.repas || [];
                 journalLogs = data.logs || [];
             } catch (error) { console.error("Erreur de connexion:", error); }
             document.getElementById('loading').style.display = 'none';
-            loadFoodDropdown(); 
+            loadDropdowns(); 
             renderJournal(); 
         }
 
-        function getFullDB() {
-            const uniqueDB = Array.from(new Map(customDB.map(item => [item.name, item])).values());
-            uniqueDB.sort((a, b) => a.name.localeCompare(b.name));
-            return uniqueDB;
+        function loadDropdowns() {
+            // Aliments
+            const selectFood = document.getElementById('food-select');
+            selectFood.innerHTML = '';
+            const uniqueDB = Array.from(new Map(customDB.map(item => [item.name, item])).values()).sort((a,b)=>a.name.localeCompare(b.name));
+            if(uniqueDB.length === 0) selectFood.appendChild(new Option("Base vide", ""));
+            else uniqueDB.forEach((f, i) => selectFood.appendChild(new Option(f.name, i)));
+
+            // Repas
+            const selectRepas = document.getElementById('repas-select');
+            selectRepas.innerHTML = '';
+            const uniqueRepas = Array.from(new Map(customRepasDB.map(item => [item.name, item])).values()).sort((a,b)=>a.name.localeCompare(b.name));
+            if(uniqueRepas.length === 0) selectRepas.appendChild(new Option("Aucun repas enregistré", ""));
+            else uniqueRepas.forEach((r, i) => selectRepas.appendChild(new Option(r.name, i)));
         }
 
-        function loadFoodDropdown() {
-            const select = document.getElementById('food-select');
-            select.innerHTML = '';
-            if(getFullDB().length === 0) {
-                select.appendChild(new Option("Base vide - Ajoute ci-dessous", ""));
-            } else {
-                getFullDB().forEach((food, index) => select.appendChild(new Option(food.name, index)));
-            }
-        }
+        function saveNewToDB(type) {
+            const prefix = type === 'Aliment' ? 'new-food' : 'new-repas';
+            const name = document.getElementById(`${prefix}-name`).value;
+            const cals = parseFr(document.getElementById(`${prefix}-kcal`).value);
+            const prot = parseFr(document.getElementById(`${prefix}-prot`).value);
+            const carb = parseFr(document.getElementById(`${prefix}-carb`).value);
+            const fat = parseFr(document.getElementById(`${prefix}-fat`).value);
 
-        function saveNewFoodToDB() {
-            const name = document.getElementById('new-food-name').value;
-            const cals = parseFloat(document.getElementById('new-food-kcal').value);
-            const prot = parseFloat(document.getElementById('new-food-prot').value);
-            const carb = parseFloat(document.getElementById('new-food-carb').value);
-            const fat = parseFloat(document.getElementById('new-food-fat').value);
-
-            if(!name || isNaN(cals) || isNaN(prot) || isNaN(carb) || isNaN(fat)) { alert("Champs invalides !"); return; }
-            const newFood = { action: "addAliment", name, cals, prot, carb, fat };
+            if(!name || cals===0) { alert("Nom et Calories obligatoires !"); return; }
             
-            customDB.push(newFood);
-            loadFoodDropdown();
+            const newItem = { action: type === 'Aliment' ? "addAliment" : "addRepas", name, cals, prot, carb, fat };
             
-            document.getElementById('new-food-name').value = '';
-            document.getElementById('new-food-kcal').value = '';
-            document.getElementById('new-food-prot').value = '';
-            document.getElementById('new-food-carb').value = '';
-            document.getElementById('new-food-fat').value = '';
+            if(type === 'Aliment') customDB.push(newItem);
+            else customRepasDB.push(newItem);
+            
+            loadDropdowns();
+            
+            document.getElementById(`${prefix}-name`).value = '';
+            document.getElementById(`${prefix}-kcal`).value = '';
+            document.getElementById(`${prefix}-prot`).value = '';
+            document.getElementById(`${prefix}-carb`).value = '';
+            document.getElementById(`${prefix}-fat`).value = '';
 
-            fetch(API_URL, { method: 'POST', body: JSON.stringify(newFood) });
+            fetch(API_URL, { method: 'POST', body: JSON.stringify(newItem) });
         }
 
+        // Ajout d'un ALIMENT (Calcul avec /100)
         function addFoodToJournal(isSimulation) {
-            const targetDate = document.getElementById('date-picker').value;
-            const meal = document.getElementById('meal-select').value;
-            const qty = parseFloat(document.getElementById('consume-qty').value);
-            const foodIndex = document.getElementById('food-select').value;
-            
-            if(getFullDB().length === 0 || !qty || isNaN(qty)) return;
+            const qty = parseFr(document.getElementById('consume-qty').value);
+            const index = document.getElementById('food-select').value;
+            const food = Array.from(new Map(customDB.map(item => [item.name, item])).values()).sort((a,b)=>a.name.localeCompare(b.name))[index];
+            if(!food || !qty) return;
 
-            const food = getFullDB()[foodIndex];
+            sendLog(food.name, qty, (food.cals/100)*qty, (food.prot/100)*qty, (food.carb/100)*qty, (food.fat/100)*qty, isSimulation, false);
+            document.getElementById('consume-qty').value = '';
+        }
+
+        // Ajout d'un REPAS (Calcul avec multiplication directe)
+        function addRepasToJournal(isSimulation) {
+            const portions = parseFr(document.getElementById('repas-qty').value);
+            const index = document.getElementById('repas-select').value;
+            const repas = Array.from(new Map(customRepasDB.map(item => [item.name, item])).values()).sort((a,b)=>a.name.localeCompare(b.name))[index];
+            if(!repas || !portions) return;
+
+            sendLog(repas.name, portions, repas.cals*portions, repas.prot*portions, repas.carb*portions, repas.fat*portions, isSimulation, true);
+            document.getElementById('repas-qty').value = '1';
+        }
+
+        function sendLog(name, qty, cals, prot, carb, fat, isSimulation, isRepas) {
+            const date = document.getElementById('date-picker').value;
+            const meal = document.getElementById('meal-select').value;
+            
+            // On ajoute un tag visuel au nom si c'est un repas
+            const finalName = isRepas ? name + " [Repas]" : name;
+            
             const newLog = {
                 id: isSimulation ? 'sim_' + generateId() : generateId(),
-                action: "addLog", date: targetDate, meal: meal, name: food.name, qty: qty,
-                cals: Math.round((food.cals / 100) * qty),
-                prot: Math.round((food.prot / 100) * qty * 10)/10,
-                carb: Math.round((food.carb / 100) * qty * 10)/10,
-                fat: Math.round((food.fat / 100) * qty * 10)/10,
+                action: "addLog", date: date, meal: meal, name: finalName, qty: qty,
+                cals: Math.round(cals), prot: Math.round(prot*10)/10, carb: Math.round(carb*10)/10, fat: Math.round(fat*10)/10,
                 isSimulation: isSimulation
             };
 
             journalLogs.push(newLog);
             renderJournal();
-            document.getElementById('consume-qty').value = '';
 
             if(!isSimulation) {
                 document.getElementById('loading').style.display = 'block';
@@ -235,14 +282,19 @@
                 if(foods.length > 0) {
                     journal.innerHTML += `<div class="meal-title">${mealType}</div><ul>` + 
                         foods.map(f => {
-                            // On utilise parseFr ici pour être immunisé contre les virgules
                             totalCals += parseFr(f.cals); totalProt += parseFr(f.prot); 
                             totalCarb += parseFr(f.carb); totalFat += parseFr(f.fat);
                             
                             const simClass = f.isSimulation ? 'simulated-item' : '';
                             const simIcon = f.isSimulation ? '🧪 <em>(Simu)</em> ' : '';
+                            
+                            // Différencier l'affichage de la quantité (grammes vs portions)
+                            const isRepas = String(f.name).includes('[Repas]');
+                            const displayName = isRepas ? f.name.replace(' [Repas]', '<span class="badge-repas">REPAS</span>') : f.name;
+                            const unit = isRepas ? (f.qty > 1 ? ' portions' : ' portion') : 'g';
+
                             return `<li class="${simClass}">
-                                <div class="food-info"><strong>${f.qty}g</strong> ${f.name} <br><small>${simIcon}</small>
+                                <div class="food-info"><strong>${f.qty}${unit}</strong> de ${displayName} <br><small>${simIcon}</small>
                                 <span class="food-details">${f.cals} kcal (P:${f.prot}g, G:${f.carb}g, L:${f.fat}g)</span></div>
                                 <button class="btn-delete" onclick="deleteLog('${f.id}', ${f.isSimulation || false})">❌</button>
                             </li>`;
