@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Tracker Nutritionnel</title>
+    <title>Nutrition - Mon App Santé</title>
     <style>
         * { box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; max-width: 800px; margin: 0 auto; padding: 15px; }
@@ -11,7 +11,6 @@
         h3 { color: #34495e; font-size: 1.1em; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-top: 20px;}
         .header-date { background: #3498db; color: white; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 10px; font-size: 1.2em; font-weight: bold; }
         .btn-back { display: block; background: #34495e; color: white; text-align: center; padding: 10px; border-radius: 5px; text-decoration: none; font-weight: bold; margin-bottom: 20px; transition: 0.3s; }
-        .btn-back:hover { background: #2c3e50; }
         #loading { background: #f39c12; color: white; text-align: center; padding: 8px; border-radius: 5px; margin-bottom: 15px; font-weight: bold; display: none; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
         
@@ -19,42 +18,37 @@
         input, select, button { padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 1em; width: 100%; }
         @media (min-width: 600px) { input, select { width: auto; flex: 1; } button { width: auto; } }
         
-        .btn-primary { background: #2ecc71; color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; }
-        .btn-primary:hover { background: #27ae60; }
-        .btn-secondary { background: #9b59b6; color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; }
-        .btn-secondary:hover { background: #8e44ad; }
-        .btn-simulation { background: #f39c12; color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; }
-        .btn-simulation:hover { background: #e67e22; }
+        .btn-primary { background: #2ecc71; color: white; border: none; cursor: pointer; font-weight: bold; }
+        .btn-simulation { background: #f39c12; color: white; border: none; cursor: pointer; font-weight: bold; }
+        .btn-secondary { background: #9b59b6; color: white; border: none; cursor: pointer; font-weight: bold; }
         .btn-clear { background: #e74c3c; color: white; border: none; cursor: pointer; font-weight: bold; padding: 5px 10px; font-size: 0.8em; border-radius: 4px; float: right; }
-        .btn-delete { background: none; border: none; color: #e74c3c; cursor: pointer; font-size: 1.2em; padding: 0 5px; width: auto; align-self: center; }
-        .btn-delete:hover { transform: scale(1.2); }
+        .btn-delete { background: none; border: none; color: #e74c3c; cursor: pointer; font-size: 1.2em; padding: 0 5px; width: auto; }
         
         .progress-container { margin-bottom: 15px; }
         .progress-label { display: flex; justify-content: space-between; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; }
         .progress-bar { width: 100%; background-color: #ecf0f1; border-radius: 10px; overflow: hidden; height: 20px; }
         .progress-fill { height: 100%; transition: width 0.5s ease-in-out; }
-        
         .cals-fill { background-color: #e74c3c; }
         .prot-fill { background-color: #3498db; }
         .carb-fill { background-color: #f1c40f; }
         .fat-fill { background-color: #e67e22; }
 
         ul { list-style-type: none; padding: 0; margin: 0; }
-        li { background: #f9f9f9; padding: 10px; border-left: 4px solid #3498db; margin-bottom: 5px; display: flex; justify-content: space-between; font-size: 0.95em; flex-wrap: wrap; gap: 5px; align-items: center;}
+        li { background: #f9f9f9; padding: 10px; border-left: 4px solid #3498db; margin-bottom: 5px; display: flex; justify-content: space-between; font-size: 0.95em; align-items: center;}
         .simulated-item { background: #fffbf0; border-left: 4px dashed #f39c12; }
         .meal-title { font-weight: bold; margin-top: 15px; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 5px; margin-bottom: 10px; }
         .food-info { flex: 1; }
         .food-details { color: #7f8c8d; font-size: 0.85em; display: block; }
-        .badge-repas { background: #9b59b6; color: white; font-size: 0.7em; padding: 2px 6px; border-radius: 4px; margin-left: 5px; vertical-align: middle;}
+        .badge-repas { background: #9b59b6; color: white; font-size: 0.7em; padding: 2px 6px; border-radius: 4px; margin-left: 5px;}
     </style>
 </head>
 <body>
 
-    <div class="header-date">Aujourd'hui, on est le <span id="display-date"></span></div>
-    
     <a href="index.html" class="btn-back">⬅️ Menu Principal</a>
     
-    <div id="loading">⏳ Synchronisation...</div>
+    <div class="header-date">Le <span id="display-date"></span></div>
+    
+    <div id="loading">⏳ Chargement des données...</div>
 
     <div class="card">
         <h2>📅 1. Sélectionner une date</h2>
@@ -80,7 +74,7 @@
             </select>
         </div>
 
-        <h3>Option A : Aliment au poids (en grammes)</h3>
+        <h3>Option A : Aliment au poids</h3>
         <div class="form-group">
             <select id="food-select"></select>
             <input type="number" id="consume-qty" placeholder="Qté (g)">
@@ -90,7 +84,7 @@
             <button class="btn-simulation" onclick="addFoodToJournal(true)">🧪 Simuler</button>
         </div>
 
-        <h3>Option B : Repas enregistré (en portions)</h3>
+        <h3>Option B : Repas complet</h3>
         <div class="form-group">
             <select id="repas-select"></select>
             <input type="number" id="repas-qty" placeholder="Nb portions" value="1" step="0.5">
@@ -108,25 +102,24 @@
 
     <div class="card">
         <h2>⚙️ 4. Gérer ma base de données</h2>
-        
-        <h3>Créer un Aliment (valeurs pour 100g)</h3>
-        <div class="form-group"><input type="text" id="new-food-name" placeholder="Nom de l'aliment"></div>
+        <h3>Créer un Aliment (pour 100g)</h3>
+        <div class="form-group"><input type="text" id="new-food-name" placeholder="Nom"></div>
         <div class="form-group">
             <input type="number" id="new-food-kcal" placeholder="Kcal">
-            <input type="number" id="new-food-prot" placeholder="Prot (g)">
-            <input type="number" id="new-food-carb" placeholder="Gluc (g)">
-            <input type="number" id="new-food-fat" placeholder="Lip (g)">
-            <button class="btn-secondary" onclick="saveNewToDB('Aliment')">Sauvegarder l'aliment</button>
+            <input type="number" id="new-food-prot" placeholder="Prot">
+            <input type="number" id="new-food-carb" placeholder="Gluc">
+            <input type="number" id="new-food-fat" placeholder="Lip">
+            <button class="btn-secondary" onclick="saveNewToDB('Aliment')">Sauvegarder</button>
         </div>
 
-        <h3>Créer un Repas (valeurs totales pour 1 portion)</h3>
-        <div class="form-group"><input type="text" id="new-repas-name" placeholder="Nom du repas (ex: Poke Bowl)"></div>
+        <h3>Créer un Repas (pour 1 portion)</h3>
+        <div class="form-group"><input type="text" id="new-repas-name" placeholder="Nom du repas"></div>
         <div class="form-group">
-            <input type="number" id="new-repas-kcal" placeholder="Kcal Totales">
-            <input type="number" id="new-repas-prot" placeholder="Prot Totales">
-            <input type="number" id="new-repas-carb" placeholder="Gluc Totaux">
-            <input type="number" id="new-repas-fat" placeholder="Lip Totaux">
-            <button class="btn-secondary" style="background:#8e44ad;" onclick="saveNewToDB('Repas')">Sauvegarder le repas</button>
+            <input type="number" id="new-repas-kcal" placeholder="Kcal">
+            <input type="number" id="new-repas-prot" placeholder="Prot">
+            <input type="number" id="new-repas-carb" placeholder="Gluc">
+            <input type="number" id="new-repas-fat" placeholder="Lip">
+            <button class="btn-secondary" style="background:#8e44ad;" onclick="saveNewToDB('Repas')">Sauvegarder</button>
         </div>
     </div>
 
@@ -138,36 +131,160 @@
         let customRepasDB = [];
         let journalLogs = [];
 
+        // Initialisation Date
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('date-picker').value = today;
         
-        function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
         const parseFr = (val) => parseFloat(String(val).replace(',', '.')) || 0;
+        const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
 
         async function init() { 
             document.getElementById('loading').style.display = 'block';
             try {
                 const response = await fetch(API_URL + "?t=" + new Date().getTime());
                 const data = await response.json();
+                
                 customDB = data.db || [];
                 customRepasDB = data.repas || [];
                 journalLogs = data.logs || [];
-            } catch (error) { console.error("Erreur de connexion:", error); }
+                
+                console.log("Données chargées:", journalLogs.length, "entrées journal");
+                
+                loadDropdowns(); 
+                renderJournal(); 
+            } catch (error) { 
+                console.error("Erreur de chargement:", error);
+                document.getElementById('loading').innerText = "❌ Erreur de connexion au Sheet";
+            }
             document.getElementById('loading').style.display = 'none';
-            loadDropdowns(); 
-            renderJournal(); 
         }
 
         function loadDropdowns() {
-            // Aliments
             const selectFood = document.getElementById('food-select');
             selectFood.innerHTML = '';
             const uniqueDB = Array.from(new Map(customDB.map(item => [item.name, item])).values()).sort((a,b)=>a.name.localeCompare(b.name));
-            if(uniqueDB.length === 0) selectFood.appendChild(new Option("Base vide", ""));
-            else uniqueDB.forEach((f, i) => selectFood.appendChild(new Option(f.name, i)));
+            uniqueDB.forEach((f, i) => selectFood.appendChild(new Option(f.name, i)));
 
-            // Repas
             const selectRepas = document.getElementById('repas-select');
             selectRepas.innerHTML = '';
             const uniqueRepas = Array.from(new Map(customRepasDB.map(item => [item.name, item])).values()).sort((a,b)=>a.name.localeCompare(b.name));
-            if(uniqueRepas.length === 0) selectRepas.
+            uniqueRepas.forEach((r, i) => selectRepas.appendChild(new Option(r.name, i)));
+        }
+
+        function renderJournal() {
+            const targetDate = document.getElementById('date-picker').value;
+            document.getElementById('display-date').innerText = new Date(targetDate).toLocaleDateString('fr-FR');
+            
+            // FILTRE ROBUSTE : On compare uniquement la partie YYYY-MM-DD
+            const dayData = journalLogs.filter(f => {
+                if (!f.date) return false;
+                let logDate = "";
+                const d = new Date(f.date);
+                if (!isNaN(d.getTime())) {
+                    logDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                } else {
+                    logDate = f.date.toString().substring(0, 10);
+                }
+                return logDate === targetDate;
+            });
+            
+            let tCals = 0, tProt = 0, tCarb = 0, tFat = 0;
+            const journal = document.getElementById('journal-list');
+            journal.innerHTML = '';
+
+            ["Petit-déjeuner", "Déjeuner", "Collation", "Dîner"].forEach(mealType => {
+                const foods = dayData.filter(f => f.meal === mealType);
+                if(foods.length > 0) {
+                    journal.innerHTML += `<div class="meal-title">${mealType}</div><ul>` + 
+                        foods.map(f => {
+                            tCals += parseFr(f.cals); tProt += parseFr(f.prot); 
+                            tCarb += parseFr(f.carb); tFat += parseFr(f.fat);
+                            
+                            const simClass = f.isSimulation ? 'simulated-item' : '';
+                            const isRepas = String(f.name).includes('[Repas]');
+                            const displayName = isRepas ? f.name.replace(' [Repas]', '<span class="badge-repas">REPAS</span>') : f.name;
+                            const unit = isRepas ? ' portions' : 'g';
+
+                            return `<li class="${simClass}">
+                                <div class="food-info"><strong>${f.qty}${unit}</strong> de ${displayName}
+                                <span class="food-details">${f.cals} kcal (P:${f.prot}g, G:${f.carb}g, L:${f.fat}g)</span></div>
+                                <button class="btn-delete" onclick="deleteLog('${f.id}', ${f.isSimulation || false})">❌</button>
+                            </li>`;
+                        }).join('') + `</ul>`;
+                }
+            });
+
+            if(dayData.length === 0) journal.innerHTML = "<p>Rien d'enregistré pour cette date.</p>";
+
+            // Update Jauges
+            document.getElementById('cals-bar').style.width = Math.min((tCals / TARGETS.cals) * 100, 100) + '%';
+            document.getElementById('cals-text').innerText = `${Math.round(tCals)} / ${TARGETS.cals}`;
+            document.getElementById('prot-bar').style.width = Math.min((tProt / TARGETS.prot) * 100, 100) + '%';
+            document.getElementById('prot-text').innerText = `${Math.round(tProt)} / ${TARGETS.prot}g`;
+            document.getElementById('carb-bar').style.width = Math.min((tCarb / TARGETS.carb) * 100, 100) + '%';
+            document.getElementById('carb-text').innerText = `${Math.round(tCarb)} / ${TARGETS.carb}g`;
+            document.getElementById('fat-bar').style.width = Math.min((tFat / TARGETS.fat) * 100, 100) + '%';
+            document.getElementById('fat-text').innerText = `${Math.round(tFat)} / ${TARGETS.fat}g`;
+        }
+
+        function addFoodToJournal(isSim) {
+            const qty = parseFr(document.getElementById('consume-qty').value);
+            const index = document.getElementById('food-select').value;
+            const food = Array.from(new Map(customDB.map(item => [item.name, item])).values()).sort((a,b)=>a.name.localeCompare(b.name))[index];
+            if(!food || !qty) return;
+            sendLog(food.name, qty, (food.cals/100)*qty, (food.prot/100)*qty, (food.carb/100)*qty, (food.fat/100)*qty, isSim);
+            document.getElementById('consume-qty').value = '';
+        }
+
+        function addRepasToJournal(isSim) {
+            const portions = parseFr(document.getElementById('repas-qty').value);
+            const index = document.getElementById('repas-select').value;
+            const repas = Array.from(new Map(customRepasDB.map(item => [item.name, item])).values()).sort((a,b)=>a.name.localeCompare(b.name))[index];
+            if(!repas || !portions) return;
+            sendLog(repas.name + " [Repas]", portions, repas.cals*portions, repas.prot*portions, repas.carb*portions, repas.fat*portions, isSim);
+        }
+
+        function sendLog(name, qty, cals, prot, carb, fat, isSim) {
+            const newLog = {
+                id: isSim ? 'sim_'+generateId() : generateId(),
+                action: "addLog", date: document.getElementById('date-picker').value, 
+                meal: document.getElementById('meal-select').value, name, qty,
+                cals: Math.round(cals), prot: Math.round(prot*10)/10, carb: Math.round(carb*10)/10, fat: Math.round(fat*10)/10,
+                isSimulation: isSim
+            };
+            journalLogs.push(newLog);
+            renderJournal();
+            if(!isSim) fetch(API_URL, { method: 'POST', body: JSON.stringify(newLog) });
+        }
+
+        function deleteLog(id, isSim) {
+            journalLogs = journalLogs.filter(l => l.id !== id);
+            renderJournal();
+            if(!isSim && !id.startsWith('sim_')) fetch(API_URL, { method: 'POST', body: JSON.stringify({action:"deleteLog", id}) });
+        }
+
+        function saveNewToDB(type) {
+            const prefix = type === 'Aliment' ? 'new-food' : 'new-repas';
+            const name = document.getElementById(`${prefix}-name`).value;
+            const item = { 
+                action: type === 'Aliment' ? "addAliment" : "addRepas", name,
+                cals: parseFr(document.getElementById(`${prefix}-kcal`).value),
+                prot: parseFr(document.getElementById(`${prefix}-prot`).value),
+                carb: parseFr(document.getElementById(`${prefix}-carb`).value),
+                fat: parseFr(document.getElementById(`${prefix}-fat`).value)
+            };
+            if(type==='Aliment') customDB.push(item); else customRepasDB.push(item);
+            loadDropdowns();
+            fetch(API_URL, { method: 'POST', body: JSON.stringify(item) });
+            alert(name + " enregistré !");
+        }
+
+        function clearSimulations() {
+            journalLogs = journalLogs.filter(l => !l.isSimulation);
+            renderJournal();
+        }
+
+        init();
+    </script>
+</body>
+</html>
